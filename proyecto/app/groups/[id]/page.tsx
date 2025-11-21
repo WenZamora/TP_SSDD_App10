@@ -5,35 +5,35 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 
-interface Gasto {
+interface Expense {
   id: string;
-  descripcion: string;
-  monto: number;
-  moneda: string;
-  pagador: string;
-  participantes: string[];
-  categoria: string;
-  fecha: number;
+  description: string;
+  amount: number;
+  currency: string;
+  payer: string;
+  participants: string[];
+  category: string;
+  date: number;
 }
 
-interface Grupo {
+interface Group {
   id: string;
-  nombre: string;
-  monedaBase: string;
-  integrantes: string[];
-  gastos: Gasto[];
-  creadoEn: number;
+  name: string;
+  baseCurrency: string;
+  members: string[];
+  expenses: Expense[];
+  createdAt: number;
 }
 
-export default function GrupoDetallePage() {
+export default function GroupDetailPage() {
   const { id } = useParams();
-  const [grupo, setGrupo] = useState<Grupo | null>(null);
+  const [group, setGroup] = useState<Group | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function cargar() {
+    async function load() {
       try {
-        const res = await fetch(`/api/grupos/${id}`);
+        const res = await fetch(`/api/groups/${id}`);
         if (!res.ok) throw new Error("No se pudo cargar el grupo");
 
         const data = await res.json();
@@ -43,42 +43,42 @@ export default function GrupoDetallePage() {
           return;
         }
 
-        setGrupo(data);
+        setGroup(data);
       } catch (err) {
         setError("Error al cargar el grupo");
       }
     }
 
-    cargar();
+    load();
   }, [id]);
 
   if (error) return <p>{error}</p>;
-  if (!grupo) return <p>Cargando...</p>;
+  if (!group) return <p>Cargando...</p>;
 
   return (
     <div style={{ padding: "20px" }}>
-      <h1>{grupo.nombre}</h1>
-      <p>Moneda base: {grupo.monedaBase}</p>
+      <h1>{group.name}</h1>
+      <p>Moneda base: {group.baseCurrency}</p>
 
       <h2>Integrantes</h2>
       <ul>
-        {grupo.integrantes.map((i) => (
-          <li key={i}>{i}</li>
+        {group.members.map((m) => (
+          <li key={m}>{m}</li>
         ))}
       </ul>
 
       <h2>Gastos</h2>
-      {grupo.gastos.length === 0 ? (
+      {group.expenses.length === 0 ? (
         <p>No hay gastos.</p>
       ) : (
         <ul>
-          {grupo.gastos.map((g) => (
-            <li key={g.id}>
-              <strong>{g.descripcion}</strong>
+          {group.expenses.map((exp) => (
+            <li key={exp.id}>
+              <strong>{exp.description}</strong>
               {" — "}
-              {g.monto} {g.moneda}
+              {exp.amount} {exp.currency}
               {" — pagó "}
-              {g.pagador}
+              {exp.payer}
             </li>
           ))}
         </ul>

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getGrupoById, updateGrupo, deleteGrupo } from "@/lib/grupos";
+import { getGroupById, updateGroup, deleteGroup } from "@/lib/groups";
 
 export async function GET(_: Request, { params }: any) { 
-  const grupo = await getGrupoById(params.id);
+  const grupo = await getGroupById(params.id);
   
   if (!grupo) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
   
@@ -11,7 +11,7 @@ export async function GET(_: Request, { params }: any) {
 
 export async function PUT(req: Request, { params }: any) { 
   const data = await req.json();
-  const upd = await updateGrupo(params.id, data);
+  const upd = await updateGroup(params.id, data);
   
   if (!upd) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
   
@@ -19,7 +19,7 @@ export async function PUT(req: Request, { params }: any) {
 }
 
 export async function DELETE(_: Request, { params }: any) { 
-  const ok = await deleteGrupo(params.id);
+  const ok = await deleteGroup(params.id);
   
   return NextResponse.json({ success: ok });
 }

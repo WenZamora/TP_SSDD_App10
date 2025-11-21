@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,29 +11,19 @@ import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
-interface GroupsManagementProps {
-  baseCurrency: string
+import { useEffect, useState } from "react";
+
+interface Group {
+  id: string;
+  name: string;
+  baseCurrency: string;
+  members: string[];
+  expenses: any[];
+  createdAt: number;
 }
 
-// Mock data for friend groups
-const mockGroups = [
-  { id: '1', name: 'Amigos de la Universidad', members: ['Juan', 'María', 'Pedro', 'Ana'] },
-  { id: '2', name: 'Compañeros de Trabajo', members: ['Carlos', 'Laura', 'Miguel'] },
-  { id: '3', name: 'Familia', members: ['Mamá', 'Papá', 'Hermano'] },
-]
-
-const mockAvailableContacts = [
-  { id: '1', name: 'María González', email: 'maria@email.com' },
-  { id: '2', name: 'Carlos Rodríguez', email: 'carlos@email.com' },
-  { id: '3', name: 'Ana Martínez', email: 'ana@email.com' },
-  { id: '4', name: 'Pedro Fernández', email: 'pedro@email.com' },
-  { id: '5', name: 'Laura Sánchez', email: 'laura@email.com' },
-  { id: '6', name: 'Miguel Torres', email: 'miguel@email.com' },
-  { id: '7', name: 'Juan Pérez', email: 'juan@email.com' },
-]
-
-export function GroupsManagement({ baseCurrency }: GroupsManagementProps) {
-  const [groups, setGroups] = useState(mockGroups)
+export function GroupsManagement() {
+  const [groups, setGroups] = useState<Group[]>([])
   const [newGroupName, setNewGroupName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -41,18 +31,37 @@ export function GroupsManagement({ baseCurrency }: GroupsManagementProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
 
-  const handleCreateGroup = () => {
-    if (newGroupName.trim()) {
-      setGroups([...groups, {
-        id: Date.now().toString(),
-        name: newGroupName,
-        members: []
-      }])
-      setNewGroupName('')
-      setIsCreating(false)
-    }
+  useEffect(() => {
+  async function load() {
+    const res = await fetch("/api/groups");
+    const data: Group[] = await res.json();
+    setGroups(data);
   }
+  load();
+}, []);
 
+  const handleCreateGroup = async() => {
+    if (!newGroupName.trim()) return;
+    
+    const res = await fetch('/api/groups', {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newGroupName,
+        baseCurrency: "ARS",
+        members: []
+      })
+    });
+
+    const newGroup  = await res.json();
+
+    setGroups([...groups, newGroup ]);
+    setNewGroupName("");
+    setIsCreating(false);
+  };
+
+
+  ////********* */
   const handleDeleteGroup = (groupId: string) => {
     setGroups(groups.filter(g => g.id !== groupId))
   }
@@ -72,21 +81,34 @@ export function GroupsManagement({ baseCurrency }: GroupsManagementProps) {
     )
   }
 
-  const handleConfirmAddMembers = () => {
-    if (selectedGroupId && selectedMembers.length > 0) {
-      setGroups(groups.map(group => {
-        if (group.id === selectedGroupId) {
-          const newMembers = [...new Set([...group.members, ...selectedMembers])]
-          return { ...group, members: newMembers }
-        }
-        return group
-      }))
-      setIsAddingMembers(false)
-      setSelectedGroupId(null)
-      setSelectedMembers([])
-    }
-  }
+  const handleConfirmAddMembers = async () => {
+    if (!selectedGroupId || selectedMembers.length === 0) return;
 
+    const group = groups.find(g => g.id === selectedGroupId);
+    if (!group) return;
+
+    const updatedMembers = [...new Set([...group.members, ...selectedMembers])];
+
+    const res = await fetch(`/api/groups/${selectedGroupId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...group,
+        members: updatedMembers
+      })
+    });
+
+    const updatedGroup = await res.json();
+
+    setGroups(groups.map(g => g.id === selectedGroupId ? updatedGroup : g));
+
+    setIsAddingMembers(false)
+    setSelectedGroupId(null)
+    setSelectedMembers([])
+  }
+  
+  const mockAvailableContacts: { id: string; name: string; email: string }[] = [];
+  /////desp ver de relacionar con una apiii!!!
   const getFilteredContacts = () => {
     const currentGroup = groups.find(g => g.id === selectedGroupId)
     const existingMembers = currentGroup?.members || []
@@ -161,7 +183,7 @@ export function GroupsManagement({ baseCurrency }: GroupsManagementProps) {
                   size="icon"
                   onClick={() => handleDeleteGroup(group.id)}
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
+                >         
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>

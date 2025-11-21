@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import { getAllGrupos, addGrupo } from "@/lib/grupos";
+import { getAllGroups, addGroup } from "@/lib/groups";
 
 export async function GET() { //para devolver TODOS los grupos
-  const grupos = await getAllGrupos();
+  const groups = await getAllGroups();
   
-  return NextResponse.json(grupos);
+  return NextResponse.json(groups);
 }
 
 export async function POST(req: Request) { //para crear un grupo nuevo
   const body = await req.json();
-  const nuevo = await addGrupo(body);
+  const newG = await addGroup(body);
   
-  return NextResponse.json(nuevo, { status: 201 });
+  return NextResponse.json(newG, { status: 201 });
 }
