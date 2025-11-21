@@ -8,7 +8,7 @@ const TMP_PATH = path.join(process.cwd(), "data", "db.json.tmp");
 // Esquema mínimo esperado.. 
 function validateDBShape(db) {
   if (!db || typeof db !== "object") return false;
-  if (!Array.isArray(db.grupos)) return false;
+  if (!Array.isArray(db.groups)) return false;
   return true;
 }
 
@@ -23,7 +23,7 @@ export async function ensureDBExists() {
       throw new Error("db.json tiene forma inesperada");
     }
   } catch (err) { //no existe -> se crea
-    const initial = { grupos: [] };
+    const initial = { groups: [] };
     await fs.writeFile(DB_PATH, JSON.stringify(initial, null, 2), "utf8");
   }
 }
@@ -37,8 +37,8 @@ export async function readDB() {
     return JSON.parse(txt); //convierte a objeto
 
   } catch (err) {// si está corrupto, se reinicia o se puede cambiar para que lance un error 
-    await fs.writeFile(DB_PATH, JSON.stringify({ grupos: [] }, null, 2), "utf8");
-    return { grupos: [] };
+    await fs.writeFile(DB_PATH, JSON.stringify({ groups: [] }, null, 2), "utf8");
+    return { groups: [] };
   }
 }
 

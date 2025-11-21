@@ -1,4 +1,12 @@
-
 {
-  "grupos": []
+  "groups": [
+    {
+      "id": "9e1c4af2-0718-4f9a-bce5-a94f4305ccfb",
+      "name": "Domingos",
+      "baseCurrency": "ARS",
+      "members": [],
+      "expenses": [],
+      "createdAt": 1763738767056
+    }
+  ]
 }
