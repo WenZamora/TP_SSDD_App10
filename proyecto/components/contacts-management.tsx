@@ -8,12 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { UserPlus, UserMinus, Search, Mail, Phone } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
-const mockContacts = [
-  { id: '1', name: 'María González', email: 'maria@email.com', phone: '+54 11 1234-5678' },
-  { id: '2', name: 'Carlos Rodríguez', email: 'carlos@email.com', phone: '+54 11 8765-4321' },
-  { id: '3', name: 'Ana Martínez', email: 'ana@email.com', phone: '+54 11 5555-6666' },
-  { id: '4', name: 'Pedro Fernández', email: 'pedro@email.com', phone: '+54 11 9999-1111' },
-]
+
 
 export function ContactsManagement() {
   const [searchQuery, setSearchQuery] = useState('')
