@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect} from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,27 +8,80 @@ import { Badge } from '@/components/ui/badge'
 import { UserPlus, UserMinus, Search, Mail, Phone } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 
-
+interface Contact {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+}
 
 export function ContactsManagement() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [newContactEmail, setNewContactEmail] = useState('')
+  // estado de contactos (viene de /api/contacts)
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [newContactEmail, setNewContactEmail] = useState<string>("");
 
-  const filteredContacts = mockContacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.email.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // cargar contactos
+  useEffect(() => {
+    fetchContacts();
+  }, []);
 
-  const handleAddContact = () => {
-    if (newContactEmail.trim()) {
-      console.log('[v0] Adding contact:', newContactEmail)
-      setNewContactEmail('')
+  async function fetchContacts() {
+    try {
+      const res = await fetch("/api/contacts");
+      if (!res.ok) throw new Error("No se pudieron cargar los contactos");
+      const data: Contact[] = await res.json();
+      setContacts(data);
+    } catch (err) {
+      console.error("fetchContacts error", err);
+      setContacts([]); // fallback
     }
   }
 
-  const handleRemoveContact = (contactId: string) => {
-    console.log('[v0] Removing contact:', contactId)
-  }
+  // agregar contacto
+  const handleAddContact = async () => {
+    if (!newContactEmail.trim()) return;
+
+    try {
+      const res = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newContactEmail.split("@")[0] || "Contacto nuevo",
+          email: newContactEmail,
+          phone: ""
+        })
+      });
+
+      if (!res.ok) throw new Error("No se pudo crear el contacto");
+
+      const created = await res.json();
+      // actualiza el estado local (append)
+      setContacts((prev) => [...prev, created]);
+      setNewContactEmail("");
+    } catch (err) {
+      console.error("handleAddContact error", err);
+    }
+  };
+
+  // eliminar contacto 
+  const handleRemoveContact = async (contactId: string) => {
+    if (!contactId) return;
+    try {
+      const res = await fetch(`/api/contacts/${contactId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("No se pudo eliminar el contacto");
+      // actualizar estado local
+      setContacts((prev) => prev.filter((c) => c.id !== contactId));
+    } catch (err) {
+      console.error("handleRemoveContact error", err);
+    }
+  };
+
+  // contactos filtrados por búsqueda
+  const filteredContacts = contacts.filter((contact) =>
+    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (contact.email || "").toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="p-8 space-y-8">
@@ -71,7 +124,7 @@ export function ContactsManagement() {
             <div>
               <CardTitle>Mis Contactos</CardTitle>
               <CardDescription>
-                {mockContacts.length} contacto{mockContacts.length !== 1 ? 's' : ''} en total
+                {contacts.length} contacto{contacts.length !== 1 ? 's' : ''} en total
               </CardDescription>
             </div>
             <Badge variant="outline">{filteredContacts.length} mostrando</Badge>

@@ -24,6 +24,8 @@ interface Group {
 
 export function GroupsManagement() {
   const [groups, setGroups] = useState<Group[]>([])
+  const [contacts, setContacts] = useState<any[]>([])
+
   const [newGroupName, setNewGroupName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -33,32 +35,39 @@ export function GroupsManagement() {
 
   useEffect(() => {
   async function load() {
+    //carga los grupos
     const res = await fetch("/api/groups");
     const data: Group[] = await res.json();
     setGroups(data);
+
+    //carga contactos
+    const resContacts = await fetch("/api/contacts");
+    const dataContacts = await resContacts.json();
+    setContacts(dataContacts);
   }
+
   load();
 }, []);
 
-  const handleCreateGroup = async() => {
-    if (!newGroupName.trim()) return;
-    
-    const res = await fetch('/api/groups', {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: newGroupName,
-        baseCurrency: "ARS",
-        members: []
-      })
-    });
+const handleCreateGroup = async() => {
+  if (!newGroupName.trim()) return;
+  
+  const res = await fetch('/api/groups', {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: newGroupName,
+      baseCurrency: "ARS",
+      members: []
+    })
+  });
 
-    const newGroup  = await res.json();
+  const newGroup  = await res.json();
 
-    setGroups([...groups, newGroup ]);
-    setNewGroupName("");
-    setIsCreating(false);
-  };
+  setGroups([...groups, newGroup ]);
+  setNewGroupName("");
+  setIsCreating(false);
+};
 
 
   ////********* */
@@ -107,13 +116,12 @@ export function GroupsManagement() {
     setSelectedMembers([])
   }
   
-  const mockAvailableContacts: { id: string; name: string; email: string }[] = [];
   /////desp ver de relacionar con una apiii!!!
   const getFilteredContacts = () => {
     const currentGroup = groups.find(g => g.id === selectedGroupId)
     const existingMembers = currentGroup?.members || []
     
-    return mockAvailableContacts.filter(contact =>
+    return contacts.filter(contact =>
       !existingMembers.includes(contact.name) &&
       (contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
        contact.email.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -166,8 +174,8 @@ export function GroupsManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {groups.map((group) => (
-          <Card key={group.id} className="hover:shadow-md transition-all">
-            <CardHeader>
+          <Card key={group.id ?? `${group.name}-${Math.random()}`} 
+                className="hover:shadow-md transition-all">            <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -175,7 +183,7 @@ export function GroupsManagement() {
                     {group.name}
                   </CardTitle>
                   <CardDescription>
-                    {group.members.length} miembros
+                    {group.members?.length ?? 0} miembros
                   </CardDescription>
                 </div>
                 <Button 
@@ -189,7 +197,7 @@ export function GroupsManagement() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {group.members.length > 0 ? (
+              {(group.members?.length ?? 0) > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {group.members.map((member, idx) => (
                     <Badge key={idx} variant="secondary">
@@ -241,7 +249,7 @@ export function GroupsManagement() {
                 getFilteredContacts().map((contact) => {
                   const initials = contact.name
                     .split(' ')
-                    .map(n => n[0])
+                    .map((n : string) => n[0])
                     .join('')
                     .toUpperCase()
                     .slice(0, 2)
@@ -255,7 +263,7 @@ export function GroupsManagement() {
                           ? 'bg-primary/5 border-primary'
                           : 'bg-card hover:bg-accent'
                       }`}
-                      onClick={() => toggleMemberSelection(contact.name)}
+                      //onClick={() => toggleMemberSelection(contact.name)}
                     >
                       <Checkbox
                         checked={isSelected}

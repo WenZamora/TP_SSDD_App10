@@ -8,5 +8,13 @@
       "expenses": [],
       "createdAt": 1763738767056
     }
+  ],
+  "contacts": [
+    {
+      "id": "111a6553-03a3-4be8-85d4-6f29d24d48a1",
+      "name": "holaQgmail.com",
+      "email": "holaQgmail.com",
+      "phone": ""
+    }
   ]
 }
