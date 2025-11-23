@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import { Label } from "@/app/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/app/components/ui/alert-dialog"
 import { Users, Trash2, Plus, UserPlus, Search, ArrowLeft } from 'lucide-react'
@@ -37,6 +38,7 @@ export function GroupsManagement() {
   const deleteGroup = useDeleteGroup()
 
   const [newGroupName, setNewGroupName] = useState('')
+  const [newGroupCurrency, setNewGroupCurrency] = useState('ARS')
   const [isCreating, setIsCreating] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
   const [viewingGroupId, setViewingGroupId] = useState<string | null>(null)
@@ -44,6 +46,20 @@ export function GroupsManagement() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [groupToDelete, setGroupToDelete] = useState<string | null>(null)
+  
+  // Currency options
+  const currencyOptions = [
+    { code: 'ARS', name: 'Peso Argentino', symbol: '$' },
+    { code: 'USD', name: 'Dólar Estadounidense', symbol: 'US$' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'BRL', name: 'Real Brasileño', symbol: 'R$' },
+    { code: 'GBP', name: 'Libra Esterlina', symbol: '£' },
+    { code: 'JPY', name: 'Yen Japonés', symbol: '¥' },
+    { code: 'MXN', name: 'Peso Mexicano', symbol: 'MX$' },
+    { code: 'CLP', name: 'Peso Chileno', symbol: 'CLP$' },
+    { code: 'COP', name: 'Peso Colombiano', symbol: 'COL$' },
+    { code: 'UYU', name: 'Peso Uruguayo', symbol: 'UY$' },
+  ]
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim() || !currentUser) return
@@ -52,13 +68,14 @@ export function GroupsManagement() {
       // Add current user as the first member of the group
       await createGroup.mutateAsync({
         name: newGroupName,
-        baseCurrency: "ARS",
+        baseCurrency: newGroupCurrency,
         members: [currentUser.id],
         creatorUserId: currentUser.id
       })
       
       toast.success('Grupo creado exitosamente')
       setNewGroupName("")
+      setNewGroupCurrency('ARS')
       setIsCreating(false)
     } catch (error: any) {
       toast.error(error.message || 'No se pudo crear el grupo')
@@ -231,7 +248,7 @@ export function GroupsManagement() {
             <DialogHeader>
               <DialogTitle>Crear Nuevo Grupo</DialogTitle>
               <DialogDescription>
-                Ingresa un nombre para tu nuevo grupo de amigos
+                Ingresa un nombre y selecciona la moneda base para tu grupo
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -239,16 +256,39 @@ export function GroupsManagement() {
                 <Label htmlFor="groupName">Nombre del Grupo</Label>
                 <Input 
                   id="groupName"
-                  placeholder="Ej: Amigos del gimnasio"
+                  placeholder="Ej: Viaje a Bariloche"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="groupCurrency">Moneda Base del Grupo</Label>
+                <Select value={newGroupCurrency} onValueChange={setNewGroupCurrency}>
+                  <SelectTrigger id="groupCurrency">
+                    <SelectValue placeholder="Selecciona una moneda" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencyOptions.map((curr) => (
+                      <SelectItem key={curr.code} value={curr.code}>
+                        {curr.code} - {curr.name} ({curr.symbol})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">
+                  💡 Los gastos en otras monedas se convertirán automáticamente a {newGroupCurrency}
+                </p>
               </div>
             </div>
             <div className="flex gap-3">
               <Button 
                 variant="outline" 
-                onClick={() => setIsCreating(false)} 
+                onClick={() => {
+                  setIsCreating(false)
+                  setNewGroupName("")
+                  setNewGroupCurrency('ARS')
+                }} 
                 className="flex-1"
                 disabled={createGroup.isPending}
               >
@@ -280,8 +320,12 @@ export function GroupsManagement() {
                     <Users className="h-5 w-5 text-primary" />
                     {group.name}
                   </CardTitle>
-                  <CardDescription>
-                    {group.members?.length ?? 0} miembros
+                  <CardDescription className="flex items-center gap-2">
+                    <span>{group.members?.length ?? 0} miembros</span>
+                    <span>•</span>
+                    <Badge variant="outline" className="text-xs">
+                      {group.baseCurrency || 'ARS'}
+                    </Badge>
                   </CardDescription>
                 </div>
                 <Button 

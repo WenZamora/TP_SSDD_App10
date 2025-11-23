@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { updateExpense, deleteExpense, getGroupById } from "@/app/lib/groups";
+import { convertAmount } from "@/app/lib/exchange";
 
 /**
  * PUT /api/groups/[id]/expenses/[expenseId]
@@ -40,16 +41,17 @@ export async function PUT(
       }
     }
     
+    // Get group for validation and currency conversion
+    const group = await getGroupById(id);
+    if (!group) {
+      return NextResponse.json(
+        { error: "Grupo no encontrado" },
+        { status: 404 }
+      );
+    }
+    
     // If payer is being updated, validate they are a member
     if (body.payer !== undefined) {
-      const group = await getGroupById(id);
-      if (!group) {
-        return NextResponse.json(
-          { error: "Grupo no encontrado" },
-          { status: 404 }
-        );
-      }
-      
       if (!group.members.includes(body.payer)) {
         return NextResponse.json(
           { error: "El pagador debe ser miembro del grupo" },
@@ -58,7 +60,54 @@ export async function PUT(
       }
     }
     
-    const updatedExpense = await updateExpense(id, expenseId, body);
+    // Validate currency if provided
+    if (body.currency !== undefined && (typeof body.currency !== "string" || body.currency.length !== 3)) {
+      return NextResponse.json(
+        { error: "La moneda debe ser un código de 3 caracteres (ej: USD)" },
+        { status: 400 }
+      );
+    }
+    
+    // Prepare update data
+    const updateData = { ...body };
+    
+    // Handle currency conversion if amount or currency is being updated
+    if (body.amount !== undefined || body.currency !== undefined) {
+      // Get current expense to access its currency
+      const currentExpense = group.expenses.find(e => e.id === expenseId);
+      if (!currentExpense) {
+        return NextResponse.json(
+          { error: "Gasto no encontrado" },
+          { status: 404 }
+        );
+      }
+      
+      const newAmount = body.amount !== undefined ? body.amount : currentExpense.amount;
+      const newCurrency = body.currency !== undefined ? body.currency.toUpperCase() : (currentExpense.currency || group.baseCurrency);
+      const groupCurrency = group.baseCurrency.toUpperCase();
+      
+      // Convert to group currency if needed
+      if (newCurrency !== groupCurrency) {
+        try {
+          const convertedAmount = await convertAmount(newAmount, newCurrency, groupCurrency);
+          updateData.convertedAmount = convertedAmount;
+          updateData.currency = newCurrency;
+          console.log(`Converted ${newAmount} ${newCurrency} to ${convertedAmount} ${groupCurrency}`);
+        } catch (error) {
+          console.error("Currency conversion error:", error);
+          return NextResponse.json(
+            { error: "Error al convertir la moneda. Por favor, intente nuevamente." },
+            { status: 500 }
+          );
+        }
+      } else {
+        // Same currency, no conversion needed
+        updateData.convertedAmount = newAmount;
+        updateData.currency = newCurrency;
+      }
+    }
+    
+    const updatedExpense = await updateExpense(id, expenseId, updateData);
     
     if (!updatedExpense) {
       return NextResponse.json(

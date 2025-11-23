@@ -39,9 +39,12 @@ export async function calculateBalances(group) {
   }
 
   // Calculate total expenses and what each person paid
+  // Use convertedAmount for calculations (all amounts in group's base currency)
   let totalExpenses = 0;
   group.expenses.forEach(expense => {
-    const amount = expense.amount;
+    // Use convertedAmount if available (for currency-converted expenses)
+    // Fall back to amount for backward compatibility with old expenses
+    const amount = expense.convertedAmount !== undefined ? expense.convertedAmount : expense.amount;
     totalExpenses += amount;
     
     // Add to payer's totalPaid

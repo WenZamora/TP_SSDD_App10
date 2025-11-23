@@ -27,7 +27,9 @@ export interface Group {
 export interface Expense {
   id: string
   description: string
-  amount: number
+  amount: number // Original amount in expense currency
+  currency: string // Currency code of the expense (e.g., "USD", "ARS")
+  convertedAmount: number // Amount converted to group's base currency
   payer: string // Contact ID
   category: ExpenseCategory
   date: number
@@ -206,6 +208,7 @@ export interface UpdateGroupDto {
 export interface CreateExpenseDto {
   description: string
   amount: number
+  currency: string // Currency code (e.g., "USD", "ARS")
   payer: string // Contact ID
   category: ExpenseCategory
   date?: number
@@ -217,6 +220,7 @@ export interface CreateExpenseDto {
 export interface UpdateExpenseDto {
   description?: string
   amount?: number
+  currency?: string
   payer?: string
   category?: ExpenseCategory
   date?: number

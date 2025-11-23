@@ -103,12 +103,28 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
                         </div>
                       </div>
                       <div className="text-right ml-4">
-                        <div className="text-2xl font-bold text-foreground">
-                          {expense.amount.toFixed(2)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {group.baseCurrency}
-                        </div>
+                        {expense.currency && expense.currency !== group.baseCurrency ? (
+                          <div>
+                            <div className="text-sm text-muted-foreground line-through">
+                              {expense.amount.toFixed(2)} {expense.currency}
+                            </div>
+                            <div className="text-2xl font-bold text-foreground">
+                              {(expense.convertedAmount || expense.amount).toFixed(2)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {group.baseCurrency} (convertido)
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="text-2xl font-bold text-foreground">
+                              {expense.amount.toFixed(2)}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {group.baseCurrency}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>

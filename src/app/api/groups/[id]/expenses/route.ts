@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getGroupExpenses, getGroupById, addExpenseToGroup } from "@/app/lib/groups";
+import { convertAmount } from "@/app/lib/exchange";
 
 /**
  * GET /api/groups/[id]/expenses
@@ -75,6 +76,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       );
     }
     
+    if (!body.currency || typeof body.currency !== "string" || body.currency.length !== 3) {
+      return NextResponse.json(
+        { error: "La moneda es requerida (código de 3 caracteres, ej: USD)" },
+        { status: 400 }
+      );
+    }
+    
     // Get group to validate payer is a member
     const group = await getGroupById(id);
     if (!group) {
@@ -92,10 +100,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       );
     }
     
+    // Convert amount to group's base currency if needed
+    let convertedAmount = body.amount;
+    const expenseCurrency = body.currency.toUpperCase();
+    const groupCurrency = group.baseCurrency.toUpperCase();
+    
+    if (expenseCurrency !== groupCurrency) {
+      try {
+        convertedAmount = await convertAmount(body.amount, expenseCurrency, groupCurrency);
+        console.log(`Converted ${body.amount} ${expenseCurrency} to ${convertedAmount} ${groupCurrency}`);
+      } catch (error) {
+        console.error("Currency conversion error:", error);
+        return NextResponse.json(
+          { error: "Error al convertir la moneda. Por favor, intente nuevamente." },
+          { status: 500 }
+        );
+      }
+    }
+    
     // Create expense data
     const expenseData = {
       description: body.description.trim(),
       amount: body.amount,
+      currency: expenseCurrency,
+      convertedAmount: convertedAmount,
       payer: body.payer,
       category: body.category,
       date: body.date,

@@ -137,7 +137,7 @@ export async function deleteGroup(id) {
 /**
  * Adds an expense to a group
  * @param {string} groupId - Group ID
- * @param {Object} expenseData - Expense data { description, amount, payer, category, date }
+ * @param {Object} expenseData - Expense data { description, amount, currency, convertedAmount, payer, category, date }
  * @returns {Promise<Object|null>} Created expense or null if group not found
  */
 export async function addExpenseToGroup(groupId, expenseData) {
@@ -151,6 +151,8 @@ export async function addExpenseToGroup(groupId, expenseData) {
     id: uuidv4(),
     description: expenseData.description,
     amount: expenseData.amount,
+    currency: expenseData.currency || group.baseCurrency,
+    convertedAmount: expenseData.convertedAmount || expenseData.amount,
     payer: expenseData.payer,
     category: expenseData.category || 'Other',
     date: expenseData.date || now,
@@ -183,7 +185,7 @@ export async function getGroupExpenses(groupId) {
  * Updates an expense in a group
  * @param {string} groupId - Group ID
  * @param {string} expenseId - Expense ID
- * @param {Object} updatedData - Data to update { description?, amount?, payer?, category?, date? }
+ * @param {Object} updatedData - Data to update { description?, amount?, currency?, convertedAmount?, payer?, category?, date? }
  * @returns {Promise<Object|null>} Updated expense or null if not found
  */
 export async function updateExpense(groupId, expenseId, updatedData) {

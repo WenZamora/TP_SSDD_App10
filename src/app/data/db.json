@@ -331,6 +331,44 @@
       ],
       "createdAt": 1763923005663,
       "updatedAt": 1763924711109
+    },
+    {
+      "id": "a07a99b4-b194-495f-8f9d-0bfe13aa2bc2",
+      "name": "Salida",
+      "description": "",
+      "baseCurrency": "USD",
+      "members": [
+        "05ab4868-e44d-42a9-8013-3bcfdd579352",
+        "aa05ceb0-27fb-4e43-927f-5c41755185d4"
+      ],
+      "expenses": [
+        {
+          "id": "646c60da-9a4a-467f-ad9d-94e3f4f28d3b",
+          "description": "Cena",
+          "amount": 10000,
+          "currency": "ARS",
+          "convertedAmount": 10.5,
+          "payer": "05ab4868-e44d-42a9-8013-3bcfdd579352",
+          "category": "Food",
+          "date": 1763926912508,
+          "createdAt": 1763926913637,
+          "updatedAt": 1763926913637
+        },
+        {
+          "id": "b065bb21-1c3b-488e-8a3c-24050b0c91ff",
+          "description": "Uber",
+          "amount": 5400.45,
+          "currency": "ARS",
+          "convertedAmount": 5.6704725,
+          "payer": "aa05ceb0-27fb-4e43-927f-5c41755185d4",
+          "category": "Transport",
+          "date": 1763926949557,
+          "createdAt": 1763926950111,
+          "updatedAt": 1763926950111
+        }
+      ],
+      "createdAt": 1763926881692,
+      "updatedAt": 1763926950111
     }
   ]
 }

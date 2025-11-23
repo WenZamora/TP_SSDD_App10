@@ -17,16 +17,17 @@ A modern web application for managing shared expenses between groups of people, 
 
 ## Overview
 
-This application enables users to create groups, track shared expenses, automatically split costs, and view detailed balance settlements. The system uses a simplified expense model where all group expenses are split equally among all members, eliminating complexity while maintaining full functionality for most use cases.
+This application enables users to create groups, track shared expenses with multi-currency support, automatically split costs, and view detailed balance settlements. Each group operates with its own base currency, and expenses can be entered in any supported currency with automatic conversion. All group expenses are split equally among all members, providing simplicity while maintaining full functionality for most use cases.
 
 ### Key Features
 
 - **User Management**: Registration and authentication with persistent user profiles
 - **Personal Contact Lists**: Each user manages their own contacts
-- **Group Management**: Create groups with multiple members from contacts
-- **Expense Tracking**: Record expenses with automatic equal splitting
+- **Group Management**: Create groups with currency selection from 10 supported currencies
+- **Multi-Currency Expenses**: Enter expenses in any currency with automatic conversion
+- **Real-Time Exchange Rates**: Integration with exchangerate.host API with 1-hour caching
+- **Aggregated Balances**: View your total balance per currency across all groups
 - **Balance Calculation**: Real-time balance computation with settlement suggestions
-- **Currency Conversion**: Integration with exchangerate.host API (foundation laid for future use)
 - **Statistics & Charts**: Visual expense analytics using Recharts
 - **Persistent Storage**: JSON-based database with atomic write operations
 
@@ -155,7 +156,10 @@ interface Group {
 
 interface Expense {
   id: string
-  amount: number         // Always in group's base currency
+  description: string
+  amount: number         // Original amount in expense currency
+  currency: string       // Currency code of the expense (e.g., "USD", "ARS")
+  convertedAmount: number // Amount converted to group's base currency
   payer: string         // User ID who paid
   category: ExpenseCategory
   date: number
@@ -192,7 +196,7 @@ interface Settlement {
 ### Key Data Model Decisions
 
 1. **User-Centric Design**: Users own contacts (many-to-many relationship)
-2. **Simplified Expenses**: No currency conversion per expense, no participant selection
+2. **Multi-Currency Support**: Per-group base currency with automatic expense conversion
 3. **Equal Splitting**: All expenses divided equally among ALL group members
 4. **Category Tracking**: Expenses categorized for statistics and filtering
 5. **Timestamps**: Full audit trail with createdAt/updatedAt
@@ -248,6 +252,7 @@ GET    /api/groups
 POST   /api/groups
        → Create new group
        → Body: { name, description?, baseCurrency, members[], creatorUserId }
+       → baseCurrency: User selects from 10 supported currencies during creation
 
 GET    /api/groups/{groupId}
        → Get single group with all expenses
@@ -268,11 +273,13 @@ GET    /api/groups/{groupId}/expenses
 
 POST   /api/groups/{groupId}/expenses
        → Add expense to group
-       → Body: { description, amount, payer, category, date? }
+       → Body: { description, amount, currency, payer, category, date? }
+       → Automatically converts to group's base currency
 
 PUT    /api/groups/{groupId}/expenses/{expenseId}
        → Update expense
-       → Body: { description?, amount?, payer?, category?, date? }
+       → Body: { description?, amount?, currency?, payer?, category?, date? }
+       → Re-converts if amount or currency changes
 
 DELETE /api/groups/{groupId}/expenses/{expenseId}
        → Delete expense from group
@@ -313,21 +320,43 @@ GET    /api/exchange
 
 ## Key Technical Decisions
 
-### 1. Expense Simplification
+### 1. Multi-Currency System with Per-Group Base Currency
 
-**Decision**: Removed currency conversion, participant selection, and descriptions from expenses.
+**Decision**: Implement per-group currency selection with automatic expense conversion.
 
-**Rationale**:
-- 95% of use cases involve splitting expenses equally among all members
-- Complexity of per-expense currency conversion wasn't utilized
-- Faster expense entry (2 fields vs 7+ fields)
-- Simpler balance calculations
-- Reduced validation and error handling
+**Implementation**:
+- **Group Creation**: Users select base currency from 10 supported options
+- **Expense Entry**: Enter expenses in any currency, auto-converted to group base
+- **Storage**: Stores both original amount/currency and converted amount
+- **Balance Calculations**: Uses converted amounts in group's base currency
+- **Dashboard Aggregation**: Shows total balance per currency across all groups
+- **Real-time Rates**: exchangerate.host API with 1-hour caching
+- **Fallback Rates**: Hardcoded rates ensure system availability
+
+**Supported Currencies**:
+- ARS (Peso Argentino $), USD (Dólar US$), EUR (Euro €)
+- BRL (Real Brasileño R$), GBP (Libra Esterlina £), JPY (Yen ¥)
+- MXN (Peso Mexicano MX$), CLP (Peso Chileno CLP$)
+- COP (Peso Colombiano COL$), UYU (Peso Uruguayo UY$)
+
+**User Experience**:
+- Currency selector in group creation modal
+- Currency badge on each group card
+- Dual display: original amount (strikethrough) + converted amount
+- Aggregated balance card shows totals per currency
+- Visual indicators (arrows, colors) for positive/negative balances
+
+**Benefits**:
+- International group support without confusion
+- Automatic conversion eliminates manual calculations
+- Transparent: always shows original and converted amounts
+- Multi-currency awareness: no mixing incompatible currencies
+- Reliable with fallback mechanisms
 
 **Trade-offs**:
-- Can't track who participated in each expense
-- Can't split costs unequally
-- All expenses must be in group's base currency
+- Dependency on external API (mitigated with caching and fallbacks)
+- Exchange rate fluctuations may affect historical accuracy
+- Slightly more complex data model
 
 ### 2. User Context Provider
 
@@ -578,7 +607,58 @@ On first run:
 1. Database file (`src/app/data/db.json`) will be created automatically
 2. Login with any name and email to create your user
 3. Add contacts from the Contacts page
-4. Create groups and start tracking expenses
+4. Create groups (select base currency during creation)
+5. Start tracking expenses in any currency
+
+## Currency Conversion Workflow
+
+### Group Creation with Currency Selection
+1. Click **"Crear Nuevo Grupo"**
+2. Enter group name
+3. **Select base currency** from dropdown (10 options)
+4. Add members from your contacts
+5. Group currency is displayed on group card
+
+### Adding Expenses with Currency Conversion
+1. Open a group
+2. Click **"Agregar Gasto"**
+3. Enter description and amount
+4. **Select expense currency** (defaults to group currency)
+5. If different from group currency:
+   - See conversion notice: "💱 El monto será convertido automáticamente"
+   - API fetches real-time exchange rate
+   - Stores both original and converted amounts
+
+### Viewing Balances
+- **Group Detail**: See individual expenses with both original and converted amounts
+- **Dashboard**: View aggregated balance per currency across all groups
+  - Example: `+1,250.00 USD ↗️` and `-500.00 ARS ↘️`
+- **Settlement Suggestions**: Always in group's base currency
+
+### Currency Conversion Examples
+
+**Scenario 1: Single Currency Group**
+```
+Group: "Viaje a Bariloche" (ARS)
+Expense: $15,000 ARS
+Result: No conversion needed
+```
+
+**Scenario 2: Multi-Currency Expense**
+```
+Group: "Viaje a Europa" (EUR)
+Expense: $100 USD
+Conversion: €92.00 (at current rate)
+Display: 100.00 USD (strikethrough) → 92.00 EUR (convertido)
+```
+
+**Scenario 3: Multiple Groups**
+```
+Dashboard shows:
++150.00 USD ↗️  (from US trip group)
+-500.00 ARS ↘️  (from local group)
++80.00 EUR ↗️   (from Europe trip)
+```
 
 ## Development Workflow
 
@@ -708,31 +788,49 @@ curl http://localhost:3000/api/groups
 
 **Files Modified**: 15 files across all layers
 
-### 2. Expense Model Simplification
+### 2. Multi-Currency System Implementation
 
-**Date**: Phase 6  
-**Scope**: Removed complexity from expense tracking
+**Date**: November 2025  
+**Scope**: Complete multi-currency support with per-group base currency
 
-**Removed Fields**:
-- `description` - Expense notes
-- `currency` - Always use group currency
-- `convertedAmount` - No per-expense conversion
-- `participants` - All members participate
+**Database Changes**:
+- `Group.baseCurrency` - Selected at group creation
+- `Expense.currency` - Original currency of the expense
+- `Expense.convertedAmount` - Auto-calculated in group's base currency
 
-**Added Fields**:
-- `updatedAt` - Modification tracking
-- `category` - Expense categorization (re-added in Phase 7)
+**Features Implemented**:
+1. **Group Creation**: Currency selector with 10 options
+2. **Expense Entry**: Currency dropdown, defaults to group currency
+3. **Automatic Conversion**: Real-time API integration
+4. **Dual Display**: Shows both original and converted amounts
+5. **Dashboard Aggregation**: Total balance per currency
+6. **Caching Strategy**: 1-hour TTL for exchange rates
+7. **Fallback System**: Hardcoded rates for offline scenarios
+
+**UI Components Updated**:
+- `groups-management.tsx` - Currency selector in create modal
+- `add-expense-modal.tsx` - Currency dropdown for expenses
+- `group-detail.tsx` - Dual amount display with conversion indicator
+- `dashboard.tsx` - Aggregated balance per currency card
+
+**API Enhancements**:
+- `/api/groups` - Accepts baseCurrency in POST
+- `/api/groups/[id]/expenses` - Auto-converts on POST/PUT
+- `/api/exchange` - Currency conversion endpoint
+
+**Technical Implementation**:
+- Exchange rate service (`lib/exchange.js`) with Map-based cache
+- Async conversion in API routes before DB write
+- `useAggregatedBalances` hook for dashboard
+- Type-safe conversion with error handling
+- Balance calculations use `convertedAmount` field
 
 **Benefits**:
-- 70% faster expense entry
-- Simpler balance calculations
-- Reduced validation complexity
-- Clearer user experience
-
-**Trade-offs**:
-- Less granular tracking
-- No custom split amounts
-- All-or-nothing participation
+- True international group support
+- No manual currency calculations
+- Multi-currency awareness in UI
+- Transparent conversion process
+- Reliable with fallback mechanisms
 
 ### 3. User Context Implementation
 
@@ -791,14 +889,14 @@ const { currentUser, setCurrentUser } = useUser()
 
 ## Balance Calculation Algorithm
 
-The app uses a **simplified greedy algorithm** for balance settlement:
+The app uses a **simplified greedy algorithm** for balance settlement. All calculations are performed in the group's base currency using the `convertedAmount` field:
 
 ```javascript
-// 1. Calculate each member's balance
+// 1. Calculate each member's balance (using convertedAmount)
 members.forEach(member => {
   const totalPaid = expenses
     .filter(e => e.payer === member.id)
-    .reduce((sum, e) => sum + e.amount, 0)
+    .reduce((sum, e) => sum + (e.convertedAmount || e.amount), 0)
   
   const fairShare = totalExpenses / memberCount
   const balance = totalPaid - fairShare
@@ -829,7 +927,10 @@ debtors.forEach(debtor => {
 })
 ```
 
-**Note**: This is not optimized for minimum transactions, but provides clear, understandable settlements.
+**Note**: 
+- This is not optimized for minimum transactions, but provides clear, understandable settlements
+- All calculations use converted amounts in the group's base currency
+- Backward compatible: falls back to `amount` if `convertedAmount` is not present
 
 ## Contributing
 

@@ -3,15 +3,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Badge } from "@/app/components/ui/badge"
 import { Skeleton } from "@/app/components/ui/skeleton"
-import { ArrowUpRight, ArrowDownRight, Users, TrendingUp, Calendar, PieChart } from 'lucide-react'
-import { cn } from "@/app/lib/utils"
-import { useState, useMemo } from 'react'
-import { BalanceHistoryModal } from './balance-history-modal'
+import { Users, Calendar, PieChart, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { useGroups } from '@/app/hooks/useGroups'
-
-interface DashboardProps {
-  baseCurrency: string
-}
+import { useAggregatedBalances } from '@/app/hooks/useBalance'
+import { useUser } from '@/app/providers/user-provider'
 
 const groupImages: Record<string, string> = {
   'viaje': '/mountain-landscape-bariloche.jpg',
@@ -46,16 +41,11 @@ function formatDateRange(createdAt: number, updatedAt: number): string {
   return `${monthNames[start.getMonth()]} ${start.getFullYear()}`
 }
 
-export function Dashboard({ baseCurrency }: DashboardProps) {
-  const [showBalanceHistory, setShowBalanceHistory] = useState(false)
+export function Dashboard() {
+  const { currentUser } = useUser()
   const { data: groups = [], isLoading } = useGroups()
   
-  // Calculate total balance (this should ideally come from the balance API)
-  const totalBalance = useMemo(() => {
-    // For now, we'll show 0. In a real implementation, this would aggregate
-    // all balances from all groups for the current user
-    return 0
-  }, [groups])
+  const { balancesByCurrency, isLoading: isLoadingBalances } = useAggregatedBalances(groups, currentUser?.id)
 
   return (
     <div className="p-8 space-y-8">
@@ -64,38 +54,53 @@ export function Dashboard({ baseCurrency }: DashboardProps) {
         <p className="text-muted-foreground mt-1">Resumen de tus grupos y gastos compartidos</p>
       </div>
 
-      {/* Balance Total */}
+      {/* Balance Total - Per Currency */}
       <Card className="border-2 bg-gradient-to-br from-primary/5 to-secondary/5">
         <CardHeader>
           <CardDescription className="text-sm font-medium">Balance Total Personal</CardDescription>
-          <CardTitle className="text-4xl font-bold flex items-baseline gap-2">
-            <span className={cn(
-              totalBalance >= 0 ? "text-success" : "text-destructive"
-            )}>
-              {totalBalance >= 0 ? '+' : ''}{totalBalance.toFixed(2)}
-            </span>
-            <span className="text-xl text-muted-foreground font-normal">{baseCurrency}</span>
-          </CardTitle>
+          {isLoadingBalances ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-4 w-32" />
+            </div>
+          ) : Object.keys(balancesByCurrency).length === 0 ? (
+            <CardTitle className="text-2xl font-bold text-muted-foreground">
+              Sin balances todavía
+            </CardTitle>
+          ) : (
+            <div className="space-y-3">
+              {Object.entries(balancesByCurrency).map(([currency, balance]) => (
+                <div key={currency} className="flex items-baseline gap-3">
+                  <CardTitle className="text-3xl font-bold flex items-baseline gap-2">
+                    <span className={balance >= 0 ? "text-success" : "text-destructive"}>
+                      {balance >= 0 ? '+' : ''}{balance.toFixed(2)}
+                    </span>
+                    <span className="text-xl text-muted-foreground font-normal">{currency}</span>
+                  </CardTitle>
+                  {balance >= 0 ? (
+                    <ArrowUpRight className="h-5 w-5 text-success" />
+                  ) : (
+                    <ArrowDownRight className="h-5 w-5 text-destructive" />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-2 text-sm">
-            {totalBalance >= 0 ? (
-              <>
-                <TrendingUp className="h-4 w-4 text-success" />
-                <span className="text-success font-medium">Te deben dinero</span>
-              </>
-            ) : (
-              <>
-                <ArrowDownRight className="h-4 w-4 text-destructive" />
-                <span className="text-destructive font-medium">Debes dinero</span>
-              </>
-            )}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <PieChart className="h-4 w-4" />
+            <span>
+              {Object.keys(balancesByCurrency).length > 0 
+                ? `Balances en ${Object.keys(balancesByCurrency).length} ${Object.keys(balancesByCurrency).length === 1 ? 'moneda' : 'monedas'}`
+                : 'Cada grupo maneja su propia moneda'}
+            </span>
           </div>
         </CardContent>
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="text-sm font-medium">Total Grupos</CardDescription>
@@ -114,21 +119,6 @@ export function Dashboard({ baseCurrency }: DashboardProps) {
               {groups.reduce((acc, g) => acc + g.expenses.length, 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">Registrados en todos los grupos</p>
-          </CardContent>
-        </Card>
-        <Card 
-          className="cursor-pointer hover:shadow-md transition-all"
-          onClick={() => setShowBalanceHistory(true)}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <PieChart className="h-4 w-4 text-primary" />
-              <CardDescription className="text-sm font-medium">Ver Detalles</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-lg font-semibold text-primary">Historial</div>
-            <p className="text-xs text-muted-foreground mt-1">Click para ver más</p>
           </CardContent>
         </Card>
       </div>
@@ -224,13 +214,6 @@ export function Dashboard({ baseCurrency }: DashboardProps) {
           </div>
         )}
       </div>
-
-      {/* Balance History Modal */}
-      <BalanceHistoryModal
-        open={showBalanceHistory}
-        onOpenChange={setShowBalanceHistory}
-        baseCurrency={baseCurrency}
-      />
     </div>
   )
 }

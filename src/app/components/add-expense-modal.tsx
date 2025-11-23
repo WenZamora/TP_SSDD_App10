@@ -26,6 +26,7 @@ export function AddExpenseModal({ open, onOpenChange, groupId, baseCurrency }: A
   
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
+  const [currency, setCurrency] = useState(baseCurrency)
   const [payerId, setPayerId] = useState('')
   const [category, setCategory] = useState<string>('Other')
   
@@ -56,15 +57,30 @@ export function AddExpenseModal({ open, onOpenChange, groupId, baseCurrency }: A
     { value: 'General', label: 'General', icon: '📋' },
   ]
   
+  // Currency options
+  const currencyOptions = [
+    { code: 'ARS', name: 'Peso Argentino', symbol: '$' },
+    { code: 'USD', name: 'Dólar Estadounidense', symbol: 'US$' },
+    { code: 'EUR', name: 'Euro', symbol: '€' },
+    { code: 'BRL', name: 'Real Brasileño', symbol: 'R$' },
+    { code: 'GBP', name: 'Libra Esterlina', symbol: '£' },
+    { code: 'JPY', name: 'Yen Japonés', symbol: '¥' },
+    { code: 'MXN', name: 'Peso Mexicano', symbol: 'MX$' },
+    { code: 'CLP', name: 'Peso Chileno', symbol: 'CLP$' },
+    { code: 'COP', name: 'Peso Colombiano', symbol: 'COL$' },
+    { code: 'UYU', name: 'Peso Uruguayo', symbol: 'UY$' },
+  ]
+  
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
       setDescription('')
       setAmount('')
+      setCurrency(baseCurrency)
       setPayerId('')
       setCategory('Other')
     }
-  }, [open])
+  }, [open, baseCurrency])
 
   const handleSubmit = async () => {
     // Validation
@@ -104,10 +120,20 @@ export function AddExpenseModal({ open, onOpenChange, groupId, baseCurrency }: A
       return
     }
 
+    if (!currency) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar una moneda",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       await addExpenseMutation.mutateAsync({
         description: description.trim(),
         amount: parseFloat(amount),
+        currency: currency,
         payer: payerId,
         category: category,
         date: Date.now(),
@@ -121,6 +147,7 @@ export function AddExpenseModal({ open, onOpenChange, groupId, baseCurrency }: A
       // Reset form
       setDescription('')
       setAmount('')
+      setCurrency(baseCurrency)
       setPayerId('')
       setCategory('Other')
       
@@ -158,19 +185,43 @@ export function AddExpenseModal({ open, onOpenChange, groupId, baseCurrency }: A
             />
           </div>
 
-          {/* Monto */}
-          <div className="space-y-2">
-            <Label htmlFor="amount">Monto ({baseCurrency})</Label>
-            <Input 
-              id="amount"
-              type="number"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              step="0.01"
-              min="0"
-            />
+          {/* Monto y Moneda */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="amount">Monto</Label>
+              <Input 
+                id="amount"
+                type="number"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                step="0.01"
+                min="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currency">Moneda</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger id="currency">
+                  <SelectValue placeholder="Moneda" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencyOptions.map((curr) => (
+                    <SelectItem key={curr.code} value={curr.code}>
+                      {curr.code} - {curr.symbol}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          
+          {/* Currency conversion info */}
+          {currency !== baseCurrency && (
+            <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
+              💱 El monto será convertido automáticamente a {baseCurrency} (moneda base del grupo)
+            </div>
+          )}
 
           {/* Pagador */}
           <div className="space-y-2">

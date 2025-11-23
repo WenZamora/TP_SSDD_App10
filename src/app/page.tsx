@@ -17,7 +17,6 @@ export default function Page() {
   const [isVerifying, setIsVerifying] = useState(false)
   
   const [currentView, setCurrentView] = useState<'dashboard' | 'groups' | 'contacts' | 'profile'>('dashboard')
-  const [baseCurrency, setBaseCurrency] = useState('USD')
 
   // Verify user still exists in database when component mounts
   useEffect(() => {
@@ -74,8 +73,6 @@ export default function Page() {
       <Sidebar 
         currentView={currentView}
         onViewChange={setCurrentView}
-        baseCurrency={baseCurrency}
-        onCurrencyChange={setBaseCurrency}
         isOpen={isSidebarOpen}
       />
       
@@ -90,9 +87,9 @@ export default function Page() {
         
         <main className="flex-1 overflow-y-auto">
           {currentView === 'dashboard' ? (
-            <Dashboard baseCurrency={baseCurrency} />
+            <Dashboard />
           ) : currentView === 'groups' ? (
-            <GroupsManagement baseCurrency={baseCurrency} />
+            <GroupsManagement />
           ) : currentView === 'contacts' ? (
             <ContactsManagement />
           ) : currentView === 'profile' ? (

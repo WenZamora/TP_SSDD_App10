@@ -2,22 +2,17 @@
 
 import { Home, Users, DollarSign, UserPlus } from 'lucide-react'
 import { Button } from "@/app/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 import { cn } from "@/app/lib/utils"
 
 interface SidebarProps {
   currentView: 'dashboard' | 'groups' | 'contacts'
   onViewChange: (view: 'dashboard' | 'groups' | 'contacts') => void
-  baseCurrency: string
-  onCurrencyChange: (currency: string) => void
   isOpen: boolean
 }
 
 export function Sidebar({
   currentView,
   onViewChange,
-  baseCurrency,
-  onCurrencyChange,
   isOpen
 }: SidebarProps) {
   if (!isOpen) return null
@@ -77,24 +72,6 @@ export function Sidebar({
           Contactos
         </Button>
       </nav>
-
-      <div className="mt-auto pt-6 border-t border-sidebar-border">
-        <label className="text-xs font-medium text-muted-foreground mb-2 block px-2">
-          Moneda Base
-        </label>
-        <Select value={baseCurrency} onValueChange={onCurrencyChange}>
-          <SelectTrigger className="w-full bg-sidebar-accent">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="USD">USD - Dólar</SelectItem>
-            <SelectItem value="EUR">EUR - Euro</SelectItem>
-            <SelectItem value="ARS">ARS - Peso Argentino</SelectItem>
-            <SelectItem value="BRL">BRL - Real</SelectItem>
-            <SelectItem value="MXN">MXN - Peso Mexicano</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
     </aside>
   )
 }
