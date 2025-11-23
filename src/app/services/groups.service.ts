@@ -43,11 +43,13 @@ async function handleErrorResponse(response: Response): Promise<never> {
  */
 export const groupsService = {
   /**
-   * Get all groups
-   * GET /api/groups
+   * Get all groups, optionally filtered by user membership
+   * GET /api/groups?userId=xxx
+   * @param userId - Optional user ID to filter groups where user is a member
    */
-  getAllGroups: async (): Promise<Group[]> => {
-    const res = await fetch("/api/groups", { cache: "no-store" })
+  getAllGroups: async (userId?: string): Promise<Group[]> => {
+    const url = userId ? `/api/groups?userId=${encodeURIComponent(userId)}` : "/api/groups"
+    const res = await fetch(url, { cache: "no-store" })
     if (!res.ok) await handleErrorResponse(res)
     return res.json()
   },

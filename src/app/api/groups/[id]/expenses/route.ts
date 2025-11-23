@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { getGroupExpenses, getGroupById, addExpenseToGroup } from "@/app/lib/groups";
-import { convertAmount } from "@/app/lib/exchange";
 
 /**
  * GET /api/groups/[id]/expenses
  * Returns all expenses for a group
  */
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const expenses = await getGroupExpenses(params.id);
+    const { id } = await params;
+    const expenses = await getGroupExpenses(id);
     
     if (expenses === null) {
       return NextResponse.json(
@@ -30,14 +30,15 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 /**
  * POST /api/groups/[id]/expenses
  * Creates a new expense in a group
- * Body: { description, amount, currency, payer, participants, category?, date? }
+ * Body: { description, amount, payer, category, date? }
  */
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const body = await req.json();
     
     // Validation
-    if (!body.description || typeof body.description !== "string") {
+    if (!body.description || typeof body.description !== "string" || body.description.trim() === "") {
       return NextResponse.json(
         { error: "La descripción es requerida" },
         { status: 400 }
@@ -51,13 +52,6 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       );
     }
     
-    if (!body.currency || typeof body.currency !== "string") {
-      return NextResponse.json(
-        { error: "La moneda es requerida" },
-        { status: 400 }
-      );
-    }
-    
     if (!body.payer || typeof body.payer !== "string") {
       return NextResponse.json(
         { error: "El pagador es requerido" },
@@ -65,15 +59,24 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       );
     }
     
-    if (!body.participants || !Array.isArray(body.participants) || body.participants.length === 0) {
+    if (!body.category || typeof body.category !== "string") {
       return NextResponse.json(
-        { error: "Debe haber al menos un participante" },
+        { error: "La categoría es requerida" },
         { status: 400 }
       );
     }
     
-    // Get group to check base currency and members
-    const group = await getGroupById(params.id);
+    // Validate category is valid
+    const validCategories = ['Food', 'Transport', 'Accommodation', 'Entertainment', 'Shopping', 'Health', 'Education', 'Utilities', 'Other', 'General'];
+    if (!validCategories.includes(body.category)) {
+      return NextResponse.json(
+        { error: "Categoría inválida" },
+        { status: 400 }
+      );
+    }
+    
+    // Get group to validate payer is a member
+    const group = await getGroupById(id);
     if (!group) {
       return NextResponse.json(
         { error: "Grupo no encontrado" },
@@ -81,7 +84,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       );
     }
     
-    // Validate payer and participants are members of the group
+    // Validate payer is a member of the group
     if (!group.members.includes(body.payer)) {
       return NextResponse.json(
         { error: "El pagador debe ser miembro del grupo" },
@@ -89,30 +92,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       );
     }
     
-    const invalidParticipants = body.participants.filter(
-      (p: string) => !group.members.includes(p)
-    );
-    if (invalidParticipants.length > 0) {
-      return NextResponse.json(
-        { error: "Todos los participantes deben ser miembros del grupo" },
-        { status: 400 }
-      );
-    }
-    
-    // Convert amount to group's base currency
-    const convertedAmount = await convertAmount(
-      body.amount,
-      body.currency,
-      group.baseCurrency
-    );
-    
-    // Add expense with converted amount
+    // Create expense data
     const expenseData = {
-      ...body,
-      convertedAmount,
+      description: body.description.trim(),
+      amount: body.amount,
+      payer: body.payer,
+      category: body.category,
+      date: body.date,
     };
     
-    const expense = await addExpenseToGroup(params.id, expenseData);
+    const expense = await addExpenseToGroup(id, expenseData);
     
     if (!expense) {
       return NextResponse.json(

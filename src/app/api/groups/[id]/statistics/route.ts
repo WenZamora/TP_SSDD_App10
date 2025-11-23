@@ -14,14 +14,15 @@ import {
  */
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
     
     // Get group
-    const group = await getGroupById(params.id);
+    const group = await getGroupById(id);
     if (!group) {
       return NextResponse.json(
         { error: "Grupo no encontrado" },

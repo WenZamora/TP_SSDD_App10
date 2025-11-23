@@ -149,15 +149,32 @@ export async function addContactToUser(userId, contactId) {
 export async function removeContactFromUser(userId, contactId) {
   const db = await readDB();
   
+  console.log('[removeContactFromUser] Before removal:', { 
+    userId, 
+    contactId, 
+    currentContacts: db.users.find(u => u.id === userId)?.contacts 
+  });
+  
   const userIndex = db.users.findIndex((u) => u.id === userId);
-  if (userIndex === -1) return null;
+  if (userIndex === -1) {
+    console.log('[removeContactFromUser] User not found');
+    return null;
+  }
   
   // Remove contact
+  const contactsBefore = [...db.users[userIndex].contacts];
   db.users[userIndex].contacts = db.users[userIndex].contacts.filter(
     (id) => id !== contactId
   );
   
+  console.log('[removeContactFromUser] After removal:', { 
+    contactsBefore,
+    contactsAfter: db.users[userIndex].contacts,
+    removed: contactsBefore.length - db.users[userIndex].contacts.length
+  });
+  
   await writeDB(db);
+  console.log('[removeContactFromUser] Database written successfully');
   return db.users[userIndex];
 }
 

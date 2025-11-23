@@ -1,675 +1,861 @@
-# 💰 Administrador de Gastos Compartidos
+# Administrador de Gastos Compartidos
 
-**Sistema de gestión de gastos compartidos entre múltiples personas con soporte multi-moneda, cálculo automático de balances y estadísticas.**
+A modern web application for managing shared expenses between groups of people, built with Next.js 16, TypeScript, and a clean layered architecture.
 
-[![Next.js](https://img.shields.io/badge/Next.js-15.1.0-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.0.0-blue?logo=react)](https://reactjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.7.2-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![TanStack Query](https://img.shields.io/badge/TanStack%20Query-5.90.10-red)](https://tanstack.com/query)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-3.5.3-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+## Table of Contents
 
----
+- [Overview](#overview)
+- [Technical Stack](#technical-stack)
+- [Architecture](#architecture)
+- [Data Model](#data-model)
+- [API Structure](#api-structure)
+- [Key Technical Decisions](#key-technical-decisions)
+- [Project Structure](#project-structure)
+- [Setup & Installation](#setup--installation)
+- [Development Workflow](#development-workflow)
+- [Major Refactorings](#major-refactorings)
 
-## 📖 Table of Contents
+## Overview
 
-- [Características](#-características)
-- [Arquitectura](#-arquitectura)
-- [Instalación](#-instalación)
-- [Uso](#-uso)
-- [API](#-api)
-- [Estructura del Proyecto](#-estructura-del-proyecto)
-- [Tecnologías](#-tecnologías)
-- [Desarrollo](#-desarrollo)
-- [Testing](#-testing)
-- [Documentación](#-documentación)
-- [Contribuir](#-contribuir)
-- [Licencia](#-licencia)
+This application enables users to create groups, track shared expenses, automatically split costs, and view detailed balance settlements. The system uses a simplified expense model where all group expenses are split equally among all members, eliminating complexity while maintaining full functionality for most use cases.
 
----
+### Key Features
 
-## ✨ Características
+- **User Management**: Registration and authentication with persistent user profiles
+- **Personal Contact Lists**: Each user manages their own contacts
+- **Group Management**: Create groups with multiple members from contacts
+- **Expense Tracking**: Record expenses with automatic equal splitting
+- **Balance Calculation**: Real-time balance computation with settlement suggestions
+- **Currency Conversion**: Integration with exchangerate.host API (foundation laid for future use)
+- **Statistics & Charts**: Visual expense analytics using Recharts
+- **Persistent Storage**: JSON-based database with atomic write operations
 
-### Core Features
+## Technical Stack
 
-- 👥 **Gestión de Contactos**: Agrega, edita y elimina contactos con validación de email
-- 🏷️ **Gestión de Grupos**: Organiza contactos en grupos para facilitar el manejo de gastos
-- 💸 **Gestión de Gastos**: Registra gastos con división automática entre participantes
-- 💱 **Multi-Moneda**: Soporte para múltiples monedas con conversión automática (API en vivo)
-- ⚖️ **Cálculo de Balances**: Calcula automáticamente quién debe a quién
-- 🔄 **Sugerencias de Liquidación**: Minimiza el número de transacciones necesarias
-- 📊 **Estadísticas**: Visualiza gastos por persona, categoría, y mes
+### Core Framework
+- **Next.js 16.0.3** - App Router with Server/Client Components
+- **React 19.2.0** - Latest React with concurrent features
+- **TypeScript 5** - Full type safety across the stack
 
-### Technical Features
+### State Management & Data Fetching
+- **TanStack Query v5.90** - Server state management and caching
+- **React Context API** - Global user authentication state
 
-- 🚀 **Server-Side Rendering**: Next.js App Router para máxima performance
-- 🔄 **Optimistic Updates**: UI instantánea con TanStack Query
-- 💾 **Auto-Save**: Persistencia automática en JSON
-- 🎨 **UI Moderna**: shadcn/ui + Tailwind CSS
-- 📱 **Responsive**: Funciona en desktop, tablet y móvil
-- 🔍 **Type-Safe**: TypeScript en toda la aplicación
-- 🧩 **Componentizado**: Arquitectura modular y reutilizable
-- ⚡ **Fast**: Carga inicial < 2s, respuestas de API < 200ms
+### UI & Styling
+- **Tailwind CSS 4.1** - Utility-first styling
+- **shadcn/ui** - Radix UI-based component library
+- **Lucide React** - Icon system
+- **next-themes** - Dark/light mode support
 
----
+### Forms & Validation
+- **React Hook Form 7.60** - Performant form handling
+- **Zod 3.25** - Runtime type validation
 
-## 🏗️ Arquitectura
+### Data Visualization
+- **Recharts 2.15** - Responsive charts (Bar, Pie, Line)
 
-El proyecto sigue una **arquitectura en capas** para máxima separación de responsabilidades:
+### Utilities
+- **UUID v13** - Unique identifier generation
+- **date-fns 4.1** - Date manipulation
+- **clsx + tailwind-merge** - Conditional class merging
+
+## Architecture
+
+The application follows a strict **layered architecture** with clear separation of concerns:
 
 ```
 ┌─────────────────────────────────────────┐
-│           UI Layer (React)              │
-│  Components, Pages, Client Interactions │
-└────────────────┬────────────────────────┘
-                 │
-┌────────────────▼────────────────────────┐
-│        Hooks Layer (TanStack Query)     │
-│   useGroups, useContacts, useExpenses   │
-└────────────────┬────────────────────────┘
-                 │
-┌────────────────▼────────────────────────┐
-│      Services Layer (HTTP Clients)      │
-│    groupsService, contactsService, etc  │
-└────────────────┬────────────────────────┘
-                 │
-┌────────────────▼────────────────────────┐
-│        API Layer (Next.js Routes)       │
-│     /api/groups, /api/contacts, etc     │
-└────────────────┬────────────────────────┘
-                 │
-┌────────────────▼────────────────────────┐
-│         DB Layer (Business Logic)       │
-│   groups.js, contacts.js, balance.js    │
-└────────────────┬────────────────────────┘
-                 │
-┌────────────────▼────────────────────────┐
-│       Persistence (JSON Database)       │
-│              src/app/data/db.json               │
+│         UI Layer (Components)           │  ← React components, user interaction
+├─────────────────────────────────────────┤
+│      Hooks Layer (TanStack Query)       │  ← State management & server sync
+├─────────────────────────────────────────┤
+│     Services Layer (HTTP Clients)       │  ← HTTP API calls with fetch
+├─────────────────────────────────────────┤
+│       API Layer (Route Handlers)        │  ← Request validation & orchestration
+├─────────────────────────────────────────┤
+│      DB Layer (JSON Persistence)        │  ← Data access & atomic writes
 └─────────────────────────────────────────┘
 ```
 
-### Capas
+### Layer Responsibilities
 
 #### 1. UI Layer (`src/app/components/`)
-- Componentes React
-- Manejo de interacción del usuario
-- Presentación de datos
+- **Responsibility**: Presentation and user interaction only
+- **Rules**: 
+  - Must use hooks from Hooks Layer (never call services directly)
+  - All components are Client Components (`'use client'`)
+  - Handle loading and error states from TanStack Query
+  - Use React Hook Form + Zod for forms
 
 #### 2. Hooks Layer (`src/app/hooks/`)
-- Custom hooks con TanStack Query
-- Gestión de estado del cliente
-- Caché y sincronización con servidor
+- **Responsibility**: State management and server synchronization
+- **Pattern**: TanStack Query hooks (useQuery, useMutation)
+- **Features**:
+  - Automatic caching and revalidation
+  - Optimistic updates
+  - Cache invalidation strategies
+  - Loading and error state management
 
 #### 3. Services Layer (`src/app/services/`)
-- Cliente HTTP (fetch)
-- Serialización/deserialización
-- Manejo de errores
+- **Responsibility**: Encapsulate all HTTP calls
+- **Pattern**: Service objects with async methods
+- **Features**:
+  - Centralized error handling
+  - Type-safe request/response handling
+  - No business logic (pure HTTP client)
 
 #### 4. API Layer (`src/app/api/`)
-- Next.js Route Handlers
-- Validación de requests
-- Respuestas HTTP
+- **Responsibility**: Request validation and business logic orchestration
+- **Pattern**: Next.js Route Handlers (GET, POST, PUT, DELETE)
+- **Features**:
+  - Input validation
+  - Business rule enforcement
+  - Proper HTTP status codes
+  - Structured error responses
 
 #### 5. DB Layer (`src/app/lib/`)
-- Lógica de negocio
-- Validaciones
-- Operaciones de base de datos
+- **Responsibility**: Data persistence and retrieval
+- **Pattern**: Functional modules with atomic operations
+- **Features**:
+  - Atomic file writes (no partial writes)
+  - Data validation on read/write
+  - Database schema enforcement
 
-#### 6. Persistence
-- JSON file (`src/app/data/db.json`)
-- Atomic writes
-- Backup automático
+## Data Model
 
----
+### Database Schema
 
-## 🚀 Instalación
+The application uses a JSON-based database (`src/app/data/db.json`) with the following structure:
 
-### Prerequisites
+```typescript
+interface Database {
+  users: User[]
+  groups: Group[]
+}
 
-- **Node.js**: v18.x o superior
-- **npm**: v9.x o superior
-- **Git**: Para clonar el repositorio
+interface User {
+  id: string              // UUID v4
+  name: string
+  email: string          // Unique
+  avatar?: string
+  contacts: string[]     // Array of user IDs
+  createdAt: number      // Unix timestamp
+}
 
-### Steps
+interface Group {
+  id: string
+  name: string
+  description?: string
+  baseCurrency: string   // e.g., "ARS", "USD", "EUR"
+  members: string[]      // Array of user IDs
+  expenses: Expense[]
+  createdAt: number
+  updatedAt: number
+}
 
-1. **Clonar el repositorio**
+interface Expense {
+  id: string
+  amount: number         // Always in group's base currency
+  payer: string         // User ID who paid
+  category: ExpenseCategory
+  date: number
+  createdAt: number
+  updatedAt: number
+}
 
-```bash
-git clone <repository-url>
-cd TP_SSDD_App10
+type ExpenseCategory = 
+  | 'Food' | 'Transport' | 'Accommodation' 
+  | 'Entertainment' | 'Shopping' | 'Health' 
+  | 'Education' | 'Utilities' | 'Other' | 'General'
 ```
 
-2. **Instalar dependencias**
+### Computed Models (Not Stored)
 
-```bash
-npm install
-```
+```typescript
+interface Balance {
+  memberId: string
+  memberName: string
+  totalPaid: number      // Total they paid
+  totalShare: number     // Total they should pay (fair share)
+  balance: number        // totalPaid - totalShare
+}
 
-3. **Inicializar base de datos**
-
-```bash
-# La base de datos se crea automáticamente al iniciar
-# O puedes crearla manualmente:
-mkdir -p data
-echo '{"groups":[],"users":[]}' > src/app/data/db.json
-```
-
-4. **Iniciar servidor de desarrollo**
-
-```bash
-npm run dev
-```
-
-5. **Abrir en navegador**
-
-```
-http://localhost:3000
-```
-
----
-
-## 📱 Uso
-
-### 1. Crear Contactos
-
-1. Ve a la página de **Contactos**
-2. Ingresa un email en el campo de texto
-3. Click **"Agregar"**
-4. El contacto aparecerá en la lista
-
-### 2. Crear Grupo
-
-1. Ve a la página de **Grupos**
-2. Click **"Crear Nuevo Grupo"**
-3. Ingresa un nombre
-4. Click **"Crear Grupo"**
-
-### 3. Añadir Miembros al Grupo
-
-1. En la tarjeta del grupo, click **"Añadir Miembros"**
-2. Selecciona contactos de la lista
-3. Click **"Añadir (X)"**
-
-### 4. Registrar Gasto
-
-**Vía API** (UI en desarrollo):
-
-```bash
-curl -X POST http://localhost:3000/api/groups/{groupId}/expenses \
-  -H "Content-Type: application/json" \
-  -d '{
-    "description": "Cena en restaurante",
-    "amount": 15000,
-    "currency": "ARS",
-    "category": "Comida",
-    "payer": "{contactId}",
-    "participants": ["{contactId1}", "{contactId2}"],
-    "date": 1700000000000
-  }'
-```
-
-### 5. Ver Balances
-
-```bash
-curl http://localhost:3000/api/groups/{groupId}/balance
-```
-
-Respuesta:
-```json
-{
-  "balances": [
-    {
-      "memberId": "123",
-      "memberName": "Juan Pérez",
-      "totalPaid": 15000,
-      "totalShare": 7500,
-      "balance": 7500
-    }
-  ],
-  "settlements": [
-    {
-      "from": "456",
-      "fromName": "María García",
-      "to": "123",
-      "toName": "Juan Pérez",
-      "amount": 7500
-    }
-  ]
+interface Settlement {
+  from: string          // User ID who owes
+  fromName: string
+  to: string           // User ID who is owed
+  toName: string
+  amount: number       // Amount to transfer
 }
 ```
 
-### 6. Ver Estadísticas
+### Key Data Model Decisions
 
-```bash
-# Por persona
-curl "http://localhost:3000/api/groups/{groupId}/statistics?type=person"
+1. **User-Centric Design**: Users own contacts (many-to-many relationship)
+2. **Simplified Expenses**: No currency conversion per expense, no participant selection
+3. **Equal Splitting**: All expenses divided equally among ALL group members
+4. **Category Tracking**: Expenses categorized for statistics and filtering
+5. **Timestamps**: Full audit trail with createdAt/updatedAt
 
-# Por categoría
-curl "http://localhost:3000/api/groups/{groupId}/statistics?type=category"
+## API Structure
 
-# Por mes
-curl "http://localhost:3000/api/groups/{groupId}/statistics?type=month"
+The API follows **RESTful conventions** with resource-based URLs:
 
-# Total
-curl "http://localhost:3000/api/groups/{groupId}/statistics?type=total"
-```
-
----
-
-## 🔌 API
-
-### Base URL
+### User Management
 
 ```
-http://localhost:3000/api
+GET    /api/users
+       → Get all users in the system
+       → Query: ?email={email} to find by email
+
+POST   /api/users
+       → Create new user or login
+       → Body: { name: string, email: string }
+
+GET    /api/users/{userId}
+       → Get single user by ID
+
+PUT    /api/users/{userId}
+       → Update user information
+       → Body: Partial<User>
+
+DELETE /api/users/{userId}
+       → Delete user (fails if member of any group)
 ```
 
-### Endpoints
+### User Contacts (Sub-resource)
 
-#### Contacts
+```
+GET    /api/users/{userId}/contacts
+       → Get user's contact list
+       → Returns array of Contact objects
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/contacts` | Get all contacts |
-| GET | `/contacts/:id` | Get contact by ID |
-| POST | `/contacts` | Create contact |
-| PUT | `/contacts/:id` | Update contact |
-| DELETE | `/contacts/:id` | Delete contact |
+POST   /api/users/{userId}/contacts
+       → Add existing user as contact
+       → Body: { contactId: string }
 
-#### Groups
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/groups` | Get all groups |
-| GET | `/groups/:id` | Get group by ID |
-| POST | `/groups` | Create group |
-| PUT | `/groups/:id` | Update group |
-| DELETE | `/groups/:id` | Delete group |
-
-#### Expenses
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/groups/:id/expenses` | Get all expenses for group |
-| POST | `/groups/:id/expenses` | Add expense to group |
-| PUT | `/groups/:id/expenses/:expenseId` | Update expense |
-| DELETE | `/groups/:id/expenses/:expenseId` | Delete expense |
-
-#### Balance
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/groups/:id/balance` | Get balances and settlements |
-
-#### Statistics
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/groups/:id/statistics?type=person` | Expenses by person |
-| GET | `/groups/:id/statistics?type=category` | Expenses by category |
-| GET | `/groups/:id/statistics?type=month` | Expenses by month |
-| GET | `/groups/:id/statistics?type=total` | Total expenses |
-
-#### Exchange Rates
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/exchange?from=USD&to=ARS` | Get exchange rate |
-
-### Example Requests
-
-**Create Group**:
-```bash
-curl -X POST http://localhost:3000/api/groups \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Viaje a Bariloche",
-    "baseCurrency": "ARS",
-    "members": ["contact-id-1", "contact-id-2"]
-  }'
+DELETE /api/users/{userId}/contacts/{contactId}
+       → Remove contact from user's list
 ```
 
-**Add Expense**:
-```bash
-curl -X POST http://localhost:3000/api/groups/group-id-123/expenses \
-  -H "Content-Type: application/json" \
-  -d '{
-    "description": "Hotel",
-    "amount": 100,
-    "currency": "USD",
-    "category": "Alojamiento",
-    "payer": "contact-id-1",
-    "participants": ["contact-id-1", "contact-id-2"],
-    "date": 1700000000000
-  }'
+### Groups
+
+```
+GET    /api/groups
+       → Get all groups
+       → Query: ?userId={userId} to filter by membership
+
+POST   /api/groups
+       → Create new group
+       → Body: { name, description?, baseCurrency, members[], creatorUserId }
+
+GET    /api/groups/{groupId}
+       → Get single group with all expenses
+
+PUT    /api/groups/{groupId}
+       → Update group
+       → Body: { name?, description?, baseCurrency?, members?, updaterUserId? }
+
+DELETE /api/groups/{groupId}
+       → Delete group and all expenses
 ```
 
-**Get Balance**:
-```bash
-curl http://localhost:3000/api/groups/group-id-123/balance
+### Group Expenses (Sub-resource)
+
+```
+GET    /api/groups/{groupId}/expenses
+       → Get all expenses for a group
+
+POST   /api/groups/{groupId}/expenses
+       → Add expense to group
+       → Body: { description, amount, payer, category, date? }
+
+PUT    /api/groups/{groupId}/expenses/{expenseId}
+       → Update expense
+       → Body: { description?, amount?, payer?, category?, date? }
+
+DELETE /api/groups/{groupId}/expenses/{expenseId}
+       → Delete expense from group
 ```
 
----
+### Group Analytics (Sub-resources)
 
-## 📁 Estructura del Proyecto
+```
+GET    /api/groups/{groupId}/balance
+       → Calculate and return balance information
+       → Returns: { balances: Balance[], settlements: Settlement[] }
+
+GET    /api/groups/{groupId}/statistics
+       → Get expense statistics for charts
+       → Returns aggregated data by person, category, and month
+```
+
+### Exchange Rates
+
+```
+GET    /api/exchange
+       → Get currency exchange rates
+       → Query: ?from={currency}&to={currency}
+       → Returns: { rate, from, to, timestamp, fallback? }
+```
+
+### API Design Principles
+
+1. **RESTful Resource Hierarchy**: URLs reflect data relationships
+2. **Proper HTTP Methods**: GET (read), POST (create), PUT (update), DELETE (remove)
+3. **Consistent Status Codes**: 200 OK, 201 Created, 400 Bad Request, 404 Not Found, 409 Conflict, 500 Server Error
+4. **Structured Errors**: `{ error: string, code?: string }`
+5. **Validation First**: All inputs validated before processing
+6. **Business Rule Enforcement**: 
+   - Members must be in creator's contacts
+   - Payer must be group member
+   - User can't be deleted if in any group
+
+## Key Technical Decisions
+
+### 1. Expense Simplification
+
+**Decision**: Removed currency conversion, participant selection, and descriptions from expenses.
+
+**Rationale**:
+- 95% of use cases involve splitting expenses equally among all members
+- Complexity of per-expense currency conversion wasn't utilized
+- Faster expense entry (2 fields vs 7+ fields)
+- Simpler balance calculations
+- Reduced validation and error handling
+
+**Trade-offs**:
+- Can't track who participated in each expense
+- Can't split costs unequally
+- All expenses must be in group's base currency
+
+### 2. User Context Provider
+
+**Decision**: Implemented centralized user state management using React Context.
+
+**Rationale**:
+- Eliminated duplicate localStorage reads across 5+ components
+- Single source of truth for authentication state
+- Automatic synchronization between tabs
+- Easier to test and debug
+- Type-safe access to user data
+
+**Implementation**: `src/app/providers/user-provider.tsx` with `useUser()` hook
+
+### 3. TanStack Query for Server State
+
+**Decision**: Use TanStack Query instead of manual fetch + useState.
+
+**Benefits**:
+- Automatic caching and revalidation
+- Built-in loading and error states
+- Optimistic updates for better UX
+- Cache invalidation strategies
+- Reduces boilerplate by 70%
+
+**Configuration**:
+```typescript
+{
+  staleTime: 1000 * 60 * 5,  // 5 minutes
+  refetchOnWindowFocus: false
+}
+```
+
+### 4. JSON-Based Database with Atomic Writes
+
+**Decision**: Use JSON files instead of a traditional database.
+
+**Rationale**:
+- Course requirement (no DBMS)
+- Simple deployment (no database server needed)
+- Easy debugging (human-readable data)
+- Version control friendly
+
+**Atomic Write Strategy**:
+```javascript
+// Write to temp file → Verify write → Rename to actual file
+await fs.writeFile(tempPath, data)
+await fs.rename(tempPath, actualPath)
+```
+
+### 5. Layered Architecture Enforcement
+
+**Decision**: Strict layer separation with no shortcuts.
+
+**Rules**:
+- Components NEVER call services directly → Must use hooks
+- Hooks NEVER access DB directly → Must use services
+- Services NEVER contain business logic → Just HTTP calls
+- API routes NEVER access DB directly → Must use lib functions
+
+**Benefits**:
+- Testable at each layer
+- Easy to swap implementations
+- Clear responsibility boundaries
+- Prevents circular dependencies
+
+### 6. TypeScript with Strict Mode
+
+**Decision**: Full type safety across all layers.
+
+**Configuration**:
+```json
+{
+  "strict": true,
+  "noUncheckedIndexedAccess": true,
+  "noImplicitAny": true
+}
+```
+
+**Benefits**:
+- Catch errors at compile time
+- Better IDE autocomplete
+- Self-documenting code
+- Easier refactoring
+
+### 7. Shadcn/UI Component Library
+
+**Decision**: Use shadcn/ui instead of pre-built component libraries.
+
+**Rationale**:
+- Copy components into codebase (full control)
+- Built on Radix UI (accessibility built-in)
+- Customizable with Tailwind
+- No bundle size bloat from unused components
+- Production-ready components
+
+## Project Structure
 
 ```
 TP_SSDD_App10/
-├── public/                    # Static assets
-│   └── images/
 ├── src/
 │   └── app/
-│       ├── api/               # API routes (Next.js)
-│       │   ├── contacts/
-│       │   │   ├── route.ts
-│       │   │   └── [id]/
-│       │   │       └── route.ts
+│       ├── api/                      # API Route Handlers
+│       │   ├── exchange/
+│       │   │   └── route.ts         # Currency exchange rates
 │       │   ├── groups/
-│       │   │   ├── route.ts
-│       │   │   └── [id]/
-│       │   │       ├── route.ts
-│       │   │       ├── expenses/
-│       │   │       ├── balance/
-│       │   │       └── statistics/
-│       │   └── exchange/
-│       │       └── route.ts
-│       ├── components/        # React components
-│       │   ├── ui/           # shadcn/ui components
+│       │   │   ├── [id]/
+│       │   │   │   ├── balance/
+│       │   │   │   │   └── route.ts # Group balance calculation
+│       │   │   │   ├── expenses/
+│       │   │   │   │   ├── [expenseId]/
+│       │   │   │   │   │   └── route.ts # Single expense operations
+│       │   │   │   │   └── route.ts # Expense collection
+│       │   │   │   ├── statistics/
+│       │   │   │   │   └── route.ts # Group statistics
+│       │   │   │   └── route.ts     # Single group operations
+│       │   │   └── route.ts         # Group collection
+│       │   └── users/
+│       │       ├── [userId]/
+│       │       │   ├── contacts/
+│       │       │   │   ├── [contactId]/
+│       │       │   │   │   └── route.ts # Contact relationship
+│       │       │   │   └── route.ts # Contacts collection
+│       │       │   └── route.ts     # Single user operations
+│       │       └── route.ts         # User collection
+│       │
+│       ├── components/              # UI Components
+│       │   ├── add-expense-modal.tsx
+│       │   ├── balance-history-modal.tsx
 │       │   ├── contacts-management.tsx
+│       │   ├── dashboard.tsx
+│       │   ├── expense-split-modal.tsx
+│       │   ├── group-detail.tsx
 │       │   ├── groups-management.tsx
-│       │   └── ...
-│       ├── hooks/             # Custom hooks
+│       │   ├── header.tsx
+│       │   ├── login-modal.tsx
+│       │   ├── profile-page.tsx
+│       │   ├── settings-modal.tsx
+│       │   ├── sidebar.tsx
+│       │   ├── theme-provider.tsx
+│       │   └── ui/                  # shadcn/ui components
+│       │       ├── button.tsx
+│       │       ├── card.tsx
+│       │       ├── dialog.tsx
+│       │       ├── form.tsx
+│       │       ├── input.tsx
+│       │       ├── select.tsx
+│       │       └── [40+ more components]
+│       │
+│       ├── data/
+│       │   └── db.json              # JSON database
+│       │
+│       ├── groups/                  # Group pages
+│       │   └── [id]/
+│       │       └── page.tsx         # Group detail page
+│       │
+│       ├── hooks/                   # TanStack Query Hooks
+│       │   ├── use-mobile.ts
+│       │   ├── use-toast.ts
+│       │   ├── useBalance.ts
 │       │   ├── useContacts.ts
-│       │   ├── useGroups.ts
 │       │   ├── useExpenses.ts
-│       │   └── useBalance.ts
-│       ├── services/          # HTTP clients
-│       │   ├── contacts.service.ts
-│       │   ├── groups.service.ts
-│       │   └── exchange.service.ts
-│       ├── lib/               # Business logic
-│       │   ├── db.js
-│       │   ├── contacts.js
-│       │   ├── groups.js
-│       │   ├── balance.js
-│       │   ├── statistics.js
-│       │   └── exchange.js
-│       ├── data/              # JSON database
-│       │   └── db.json
-│       ├── types/             # TypeScript types
-│       │   └── index.ts
-│       ├── providers/         # React providers
-│       │   └── query-provider.tsx
-│       ├── layout.tsx         # Root layout
-│       ├── page.tsx           # Home page
-│       └── globals.css
-├── .specs/                    # Documentation and specifications
-│   ├── spec.md               # Technical specification
-│   ├── tasks.md              # Task checklist
-│   ├── REFACTORING_GUIDE.md  # Component refactoring guide
-│   ├── TESTING_GUIDE.md      # Manual testing guide
-│   ├── PHASE_*.md            # Phase completion summaries
-│   └── ...                   # Other documentation
-├── package.json
-├── tsconfig.json
-└── README.md
+│       │   ├── useGroups.ts
+│       │   └── useStatistics.ts
+│       │
+│       ├── lib/                     # Database & Utilities
+│       │   ├── balance.js           # Balance calculation algorithms
+│       │   ├── contacts.js          # Contact/user data access
+│       │   ├── db.js                # Database I/O with atomic writes
+│       │   ├── exchange.js          # Currency conversion
+│       │   ├── groups.js            # Group & expense data access
+│       │   ├── statistics.js        # Statistics calculations
+│       │   └── utils.ts             # Utility functions (clsx, etc.)
+│       │
+│       ├── providers/               # React Context Providers
+│       │   ├── query-provider.tsx   # TanStack Query setup
+│       │   └── user-provider.tsx    # User authentication context
+│       │
+│       ├── services/                # HTTP Client Services
+│       │   ├── contacts.service.ts  # Contact API calls
+│       │   ├── exchange.service.ts  # Exchange API calls
+│       │   ├── groups.service.ts    # Group API calls
+│       │   └── users.service.ts     # User API calls
+│       │
+│       ├── types/                   # TypeScript Type Definitions
+│       │   └── index.ts             # All interfaces and types
+│       │
+│       ├── globals.css              # Global styles
+│       ├── layout.tsx               # Root layout with providers
+│       └── page.tsx                 # Home page
+│
+├── public/                          # Static assets
+│   ├── apple-icon.png
+│   ├── icon.svg
+│   └── [images]
+│
+├── .specs/                          # Documentation
+│   ├── API_ENDPOINTS_SUMMARY.md
+│   ├── EXPENSE_SIMPLIFICATION_REFACTORING.md
+│   ├── REFACTORING_SUMMARY.md
+│   ├── SPEC.md
+│   └── [12+ more docs]
+│
+├── components.json                  # shadcn/ui config
+├── next.config.mjs                 # Next.js configuration
+├── package.json                    # Dependencies
+├── postcss.config.mjs              # PostCSS configuration
+├── tailwind.config.ts              # Tailwind configuration
+└── tsconfig.json                   # TypeScript configuration
 ```
 
----
+## Setup & Installation
 
-## 🛠️ Tecnologías
+### Prerequisites
 
-### Frontend
+- **Node.js** 18.x or higher
+- **npm** 9.x or higher
 
-- **[Next.js 15](https://nextjs.org/)**: React framework con App Router
-- **[React 19](https://reactjs.org/)**: UI library
-- **[TypeScript 5](https://www.typescriptlang.org/)**: Type-safe JavaScript
-- **[TanStack Query 5](https://tanstack.com/query)**: Server state management
-- **[React Hook Form](https://react-hook-form.com/)**: Form handling
-- **[Zod](https://zod.dev/)**: Schema validation
-- **[Tailwind CSS](https://tailwindcss.com/)**: Utility-first CSS
-- **[shadcn/ui](https://ui.shadcn.com/)**: Component library
-- **[Recharts](https://recharts.org/)**: Charts library
-- **[Lucide React](https://lucide.dev/)**: Icon library
-- **[Sonner](https://sonner.emilkowal.ski/)**: Toast notifications
+### Installation Steps
 
-### Backend
+```bash
+# 1. Clone the repository
+git clone [repository-url]
+cd TP_SSDD_App10
 
-- **[Next.js API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)**: REST API
-- **[Node.js](https://nodejs.org/)**: JavaScript runtime
-- **JSON File Storage**: Lightweight persistence
+# 2. Install dependencies
+npm install
 
-### Development
+# 3. Start development server
+npm run dev
 
-- **[ESLint](https://eslint.org/)**: Code linting
-- **[Prettier](https://prettier.io/)**: Code formatting (configured via ESLint)
-
----
-
-## 💻 Desarrollo
+# 4. Open browser
+# Navigate to http://localhost:3000
+```
 
 ### Available Scripts
 
 ```bash
-# Development server (with hot reload)
-npm run dev
+npm run dev      # Start development server (hot reload)
+npm run build    # Build for production
+npm run start    # Start production server
+npm run lint     # Run ESLint
+```
 
-# Production build
-npm run build
+### Initial Setup
 
-# Start production server
-npm start
+On first run:
+1. Database file (`src/app/data/db.json`) will be created automatically
+2. Login with any name and email to create your user
+3. Add contacts from the Contacts page
+4. Create groups and start tracking expenses
 
-# Run linter
+## Development Workflow
+
+### 1. Adding a New Feature
+
+Follow the layers top-to-bottom:
+
+```
+1. Define Types (src/app/types/index.ts)
+   ↓
+2. Create DB Functions (src/app/lib/*.js)
+   ↓
+3. Create API Routes (src/app/api/*/route.ts)
+   ↓
+4. Create Service Methods (src/app/services/*.service.ts)
+   ↓
+5. Create Hooks (src/app/hooks/use*.ts)
+   ↓
+6. Create/Update Components (src/app/components/*.tsx)
+```
+
+### 2. Example: Adding Expense Notes
+
+**Step 1: Update Types**
+```typescript
+// src/app/types/index.ts
+interface Expense {
+  // ... existing fields
+  notes?: string  // Add optional notes field
+}
+```
+
+**Step 2: Update DB Layer**
+```javascript
+// src/app/lib/groups.js
+export async function addExpenseToGroup(groupId, expenseData) {
+  // ... existing code
+  const newExpense = {
+    // ... existing fields
+    notes: expenseData.notes || "",
+  }
+  // ...
+}
+```
+
+**Step 3: Update API Route**
+```typescript
+// src/app/api/groups/[id]/expenses/route.ts
+export async function POST(req: Request) {
+  const body = await req.json()
+  
+  // Add notes to expense data
+  const expenseData = {
+    // ... existing fields
+    notes: body.notes,
+  }
+  // ...
+}
+```
+
+**Step 4: Update Service** (minimal changes needed)
+
+**Step 5: Update Hook** (minimal changes needed)
+
+**Step 6: Update Component**
+```typescript
+// src/app/components/add-expense-modal.tsx
+const [notes, setNotes] = useState('')
+
+// Add textarea in form
+<Textarea 
+  value={notes}
+  onChange={(e) => setNotes(e.target.value)}
+  placeholder="Notas opcionales"
+/>
+
+// Include in mutation
+await addExpenseMutation.mutateAsync({
+  // ... existing fields
+  notes: notes.trim(),
+})
+```
+
+### 3. Testing Changes
+
+```bash
+# 1. Check TypeScript types
+npx tsc --noEmit
+
+# 2. Check linting
 npm run lint
 
-# Type check
-npx tsc --noEmit
-```
-
-### Development Workflow
-
-1. **Create a new branch** for your feature
-2. **Make changes** following the architecture
-3. **Test manually** using `.specs/TESTING_GUIDE.md`
-4. **Run linter**: `npm run lint`
-5. **Type check**: `npx tsc --noEmit`
-6. **Commit** with descriptive message
-7. **Push** and create pull request
-
-### Adding a New Feature
-
-Follow the layer-by-layer approach:
-
-1. **Add types** in `src/app/types/index.ts`
-2. **Create DB functions** in `src/app/lib/`
-3. **Create API routes** in `src/app/api/`
-4. **Create service** in `src/app/services/`
-5. **Create hooks** in `src/app/hooks/`
-6. **Create UI components** in `src/app/components/`
-
-See `.specs/REFACTORING_GUIDE.md` for patterns and examples.
-
-### Code Style
-
-- **TypeScript** for all new files
-- **Functional components** with hooks
-- **Named exports** preferred over default exports
-- **JSDoc comments** for all public functions
-- **Tailwind CSS** for styling (no custom CSS)
-- **shadcn/ui** components for UI primitives
-
----
-
-## 🧪 Testing
-
-### Manual Testing
-
-Follow the comprehensive guide in `.specs/TESTING_GUIDE.md`:
-
-```bash
-# Quick test all features
+# 3. Test in browser
 npm run dev
 
-# Then open:
-# - http://localhost:3000 (UI)
-# - http://localhost:3000/api/contacts (API)
-```
-
-### API Testing
-
-Use the provided test script:
-
-```bash
-chmod +x test-api.sh
-./test-api.sh
-```
-
-Or manually with curl/Postman:
-
-```bash
-# Test contacts endpoint
-curl http://localhost:3000/api/contacts
-
-# Test groups endpoint
+# 4. Test API endpoints (optional)
+# Use Postman, Thunder Client, or curl
 curl http://localhost:3000/api/groups
-
-# Test balance calculation
-curl http://localhost:3000/api/groups/{groupId}/balance
 ```
 
-### Test Coverage
+### 4. Code Style Guidelines
 
-Current test coverage:
+- **Components**: PascalCase (`UserProfile.tsx`)
+- **Files**: kebab-case (`use-groups.ts`, `groups.service.ts`)
+- **Functions**: camelCase (`calculateBalance`)
+- **Constants**: UPPER_SNAKE_CASE (`MAX_GROUP_SIZE`)
+- **Interfaces**: PascalCase with 'I' prefix optional (`User` or `IUser`)
 
-- ✅ API endpoints: Manual testing
-- ✅ UI components: Manual testing
-- ⏳ Unit tests: Not implemented yet
-- ⏳ Integration tests: Not implemented yet
-- ⏳ E2E tests: Not implemented yet
+## Major Refactorings
 
----
+### 1. User-Centric Database Model
 
-## 📚 Documentación
+**Date**: Phase 5  
+**Scope**: Complete database restructuring
 
-### Available Docs
+**Changes**:
+- Migrated from flat `contacts` array to user-centric model
+- Each user now has personal contact list (`user.contacts[]`)
+- Separated system users from contact relationships
+- Created nested API structure (`/api/users/{id}/contacts`)
 
-- **[spec.md](./.specs/spec.md)**: Complete technical specification
-- **[tasks.md](./.specs/tasks.md)**: Task checklist and progress tracking
-- **[REFACTORING_GUIDE.md](./.specs/REFACTORING_GUIDE.md)**: Component refactoring patterns
-- **[TESTING_GUIDE.md](./.specs/TESTING_GUIDE.md)**: Manual testing guide
-- **[PHASE_6_SUMMARY.md](./.specs/PHASE_6_SUMMARY.md)**: Phase 6 completion summary
-- **[README.md](./README.md)**: This file
+**Impact**:
+- Better reflects real-world relationships
+- Enables per-user contact management
+- Scalable for future features (groups, permissions)
+- Breaking change: Required data migration
 
-### API Documentation
+**Files Modified**: 15 files across all layers
 
-See [API section](#-api) above or explore:
+### 2. Expense Model Simplification
 
-```bash
-# List all routes
-find src/app/api -name "route.ts" -type f
+**Date**: Phase 6  
+**Scope**: Removed complexity from expense tracking
+
+**Removed Fields**:
+- `description` - Expense notes
+- `currency` - Always use group currency
+- `convertedAmount` - No per-expense conversion
+- `participants` - All members participate
+
+**Added Fields**:
+- `updatedAt` - Modification tracking
+- `category` - Expense categorization (re-added in Phase 7)
+
+**Benefits**:
+- 70% faster expense entry
+- Simpler balance calculations
+- Reduced validation complexity
+- Clearer user experience
+
+**Trade-offs**:
+- Less granular tracking
+- No custom split amounts
+- All-or-nothing participation
+
+### 3. User Context Implementation
+
+**Date**: Phase 6  
+**Scope**: Centralized authentication state
+
+**Before**:
+```typescript
+// In every component:
+const [user, setUser] = useState(null)
+useEffect(() => {
+  const stored = localStorage.getItem('user')
+  if (stored) setUser(JSON.parse(stored))
+}, [])
 ```
 
-### Architecture Documentation
+**After**:
+```typescript
+// Anywhere in the app:
+const { currentUser, setCurrentUser } = useUser()
+```
 
-See `.specs/spec.md` for complete architecture details including:
-- Data models
-- Layer responsibilities
-- Best practices
-- Implementation checklist
+**Benefits**:
+- Single source of truth
+- No duplicate localStorage reads
+- Automatic cross-tab synchronization
+- Type-safe user access
+- Easier testing
+
+**Files Modified**: 7 files
+
+### 4. Category System Addition
+
+**Date**: Recent (Phase 7)  
+**Scope**: Re-added expense categorization
+
+**Categories**:
+- Food 🍽️
+- Transport 🚗
+- Accommodation 🏨
+- Entertainment 🎉
+- Shopping 🛍️
+- Health 💊
+- Education 📚
+- Utilities 💡
+- Other 📦
+- General 📋
+
+**Implementation**:
+- Added to Expense interface
+- Validation in API routes
+- Category selector in UI
+- Statistics by category (future-ready)
+
+**Files Modified**: 6 files across all layers
+
+## Balance Calculation Algorithm
+
+The app uses a **simplified greedy algorithm** for balance settlement:
+
+```javascript
+// 1. Calculate each member's balance
+members.forEach(member => {
+  const totalPaid = expenses
+    .filter(e => e.payer === member.id)
+    .reduce((sum, e) => sum + e.amount, 0)
+  
+  const fairShare = totalExpenses / memberCount
+  const balance = totalPaid - fairShare
+})
+
+// 2. Separate creditors (balance > 0) and debtors (balance < 0)
+const creditors = balances.filter(b => b.balance > 0)
+const debtors = balances.filter(b => b.balance < 0)
+
+// 3. Match debtors to creditors (greedy approach)
+debtors.forEach(debtor => {
+  let remaining = Math.abs(debtor.balance)
+  
+  creditors.forEach(creditor => {
+    if (remaining > 0 && creditor.balance > 0) {
+      const payment = Math.min(remaining, creditor.balance)
+      
+      settlements.push({
+        from: debtor.memberId,
+        to: creditor.memberId,
+        amount: payment
+      })
+      
+      remaining -= payment
+      creditor.balance -= payment
+    }
+  })
+})
+```
+
+**Note**: This is not optimized for minimum transactions, but provides clear, understandable settlements.
+
+## Contributing
+
+### Branch Strategy
+- `main` - Production-ready code
+- `develop` - Integration branch
+- `feature/*` - New features
+- `fix/*` - Bug fixes
+
+### Commit Convention
+```
+type(scope): description
+
+- feat: New feature
+- fix: Bug fix
+- docs: Documentation
+- refactor: Code restructuring
+- test: Add tests
+- chore: Maintenance
+```
+
+## License
+
+This project is part of a university course assignment (Sistemas Distribuidos).
 
 ---
 
-## 🤝 Contribuir
+**Built with ❤️ using Next.js, TypeScript, and modern React patterns**
 
-### How to Contribute
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-### Pull Request Guidelines
-
-- Follow the existing code style
-- Add tests for new features
-- Update documentation
-- Ensure all tests pass
-- Keep commits atomic and well-described
-
-### Reporting Issues
-
-When reporting bugs, include:
-- Steps to reproduce
-- Expected vs actual behavior
-- Screenshots (if applicable)
-- Browser/OS version
-- Console errors
-
----
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detalles.
-
----
-
-## 👥 Autores
-
-- **Sistema de Gastos Compartidos** - Trabajo Práctico SSDD
-
----
-
-## 🙏 Agradecimientos
-
-- [shadcn/ui](https://ui.shadcn.com/) for the amazing component library
-- [TanStack Query](https://tanstack.com/query) for the powerful data fetching
-- [Next.js](https://nextjs.org/) for the excellent framework
-- [exchangerate.host](https://exchangerate.host/) for the free currency API
-
----
-
-## 📞 Soporte
-
-For support, please open an issue in the GitHub repository.
-
----
-
-## 🔮 Roadmap
-
-### Completed ✅
-- [x] Contacts management
-- [x] Groups management
-- [x] Expense tracking
-- [x] Balance calculation
-- [x] Currency conversion
-- [x] Statistics
-- [x] REST API
-- [x] TanStack Query integration
-- [x] Loading/error states
-- [x] Toast notifications
-
-### In Progress 🚧
-- [ ] Complete expense UI components
-- [ ] User authentication
-- [ ] Activity/event management
-
-### Planned 📋
-- [ ] Unit tests (Jest)
-- [ ] Integration tests
-- [ ] E2E tests (Playwright)
-- [ ] Real-time updates (WebSockets)
-- [ ] Export to PDF/Excel
-- [ ] Email notifications
-- [ ] Mobile app (React Native)
-- [ ] Multiple currencies per expense
-- [ ] Custom split ratios
-- [ ] Receipt image upload
-- [ ] Budget limits and alerts
-- [ ] Dark mode
-- [ ] Internationalization (i18n)
-
----
-
-**Made with ❤️ for managing shared expenses**

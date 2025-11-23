@@ -4,77 +4,57 @@ import { useState, useEffect } from 'react'
 import { Sidebar } from "@/app/components/sidebar"
 import { Header } from "@/app/components/header"
 import { Dashboard } from "@/app/components/dashboard"
-import { AddExpenseModal } from "@/app/components/add-expense-modal"
 import { LoginModal } from "@/app/components/login-modal"
 import { GroupsManagement } from "@/app/components/groups-management"
 import { ContactsManagement } from "@/app/components/contacts-management"
 import { ProfilePage } from "@/app/components/profile-page"
+import { useUser } from "@/app/providers/user-provider"
 import { usersService } from "@/app/services/users.service"
-import type { User } from "@/app/types"
 
 export default function Page() {
-  const [user, setUser] = useState<User | null>(null)
+  const { currentUser, setCurrentUser, isLoading: isLoadingUser } = useUser()
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isVerifying, setIsVerifying] = useState(false)
   
   const [currentView, setCurrentView] = useState<'dashboard' | 'groups' | 'contacts' | 'profile'>('dashboard')
   const [baseCurrency, setBaseCurrency] = useState('USD')
-  const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
 
+  // Verify user still exists in database when component mounts
   useEffect(() => {
-    const storedUser = localStorage.getItem('splitwise_user')
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser)
-        // Verify user still exists in database
-        if (userData.id && userData.email) {
-          usersService.getUserByEmail(userData.email).then((dbUser) => {
-            if (dbUser) {
-              setUser(dbUser)
-              localStorage.setItem('splitwise_user', JSON.stringify(dbUser))
-            } else {
-              // User no longer exists in database
-              localStorage.removeItem('splitwise_user')
-              setUser(null)
-            }
-            setIsLoading(false)
-          }).catch(() => {
-            setIsLoading(false)
-          })
+    if (!isLoadingUser && currentUser) {
+      setIsVerifying(true)
+      usersService.getUserByEmail(currentUser.email).then((dbUser) => {
+        if (dbUser) {
+          // Update context with latest user data from database
+          setCurrentUser(dbUser)
         } else {
-          // Old format user, clear it
-          localStorage.removeItem('splitwise_user')
-          setIsLoading(false)
+          // User no longer exists in database
+          setCurrentUser(null)
         }
-      } catch {
-        localStorage.removeItem('splitwise_user')
-        setIsLoading(false)
-      }
-    } else {
-      setIsLoading(false)
+        setIsVerifying(false)
+      }).catch(() => {
+        setIsVerifying(false)
+      })
     }
-  }, [])
+  }, [isLoadingUser]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogin = async (name: string, email: string) => {
     const loggedInUser = await usersService.loginOrCreateUser(name, email)
-    localStorage.setItem('splitwise_user', JSON.stringify(loggedInUser))
-    setUser(loggedInUser)
+    setCurrentUser(loggedInUser)
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('splitwise_user')
-    setUser(null)
+    setCurrentUser(null)
   }
 
   const handleUpdateUser = (name: string) => {
-    if (user) {
-      const updatedUser = { ...user, name }
-      localStorage.setItem('splitwise_user', JSON.stringify(updatedUser))
-      setUser(updatedUser)
+    if (currentUser) {
+      const updatedUser = { ...currentUser, name }
+      setCurrentUser(updatedUser)
     }
   }
 
-  if (isLoading) {
+  if (isLoadingUser || isVerifying) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -85,7 +65,7 @@ export default function Page() {
     )
   }
 
-  if (!user) {
+  if (!currentUser) {
     return <LoginModal onLogin={handleLogin} />
   }
 
@@ -101,7 +81,7 @@ export default function Page() {
       
       <div className="flex flex-col flex-1 overflow-hidden">
         <Header 
-          user={user}
+          user={currentUser}
           isSidebarOpen={isSidebarOpen}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onOpenProfile={() => setCurrentView('profile')}
@@ -116,16 +96,10 @@ export default function Page() {
           ) : currentView === 'contacts' ? (
             <ContactsManagement />
           ) : currentView === 'profile' ? (
-            <ProfilePage user={user} onUpdateUser={handleUpdateUser} />
+            <ProfilePage user={currentUser} onUpdateUser={handleUpdateUser} />
           ) : null}
         </main>
       </div>
-
-      <AddExpenseModal 
-        open={isAddExpenseOpen}
-        onOpenChange={setIsAddExpenseOpen}
-        baseCurrency={baseCurrency}
-      />
     </div>
   )
 }

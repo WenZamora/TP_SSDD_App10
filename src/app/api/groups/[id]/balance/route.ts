@@ -6,9 +6,10 @@ import { getGroupBalanceSummary } from "@/app/lib/balance";
  * Returns balance information and settlement suggestions for a group
  * Response: { balances: Balance[], settlements: Settlement[] }
  */
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const balanceSummary = await getGroupBalanceSummary(params.id);
+    const { id } = await params;
+    const balanceSummary = await getGroupBalanceSummary(id);
     
     return NextResponse.json(balanceSummary, { status: 200 });
     

@@ -6,22 +6,32 @@ import { Input } from "@/app/components/ui/input"
 import { Label } from "@/app/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/app/components/ui/alert-dialog"
-import { Users, Trash2, Plus, UserPlus, Search } from 'lucide-react'
+import { Users, Trash2, Plus, UserPlus, Search, ArrowLeft } from 'lucide-react'
 import { Badge } from "@/app/components/ui/badge"
 import { Checkbox } from "@/app/components/ui/checkbox"
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar"
 import { Skeleton } from "@/app/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { toast } from 'sonner'
+import { useUser } from '@/app/providers/user-provider'
 import { useGroups, useCreateGroup, useUpdateGroup, useDeleteGroup } from '@/app/hooks/useGroups'
-import { useContacts } from '@/app/hooks/useContacts'
+import { useContacts, useUserContacts } from '@/app/hooks/useContacts'
 import { useState } from "react"
 import type { Group } from '@/app/types'
+import { GroupDetail } from './group-detail'
 
 export function GroupsManagement() {
+  // Get current user from context
+  const { currentUser, isLoading: isLoadingUser } = useUser()
+  
   // Use hooks instead of manual state/fetch
   const { data: groups = [], isLoading: isLoadingGroups, error: groupsError } = useGroups()
-  const { data: contacts = [] } = useContacts()
+  
+  // Get user's contacts (for adding members)
+  const { data: myContacts = [] } = useUserContacts(currentUser?.id || null)
+  
+  // Get all users (for displaying member names in groups)
+  const { data: allUsers = [] } = useContacts()
   const createGroup = useCreateGroup()
   const updateGroup = useUpdateGroup()
   const deleteGroup = useDeleteGroup()
@@ -29,19 +39,22 @@ export function GroupsManagement() {
   const [newGroupName, setNewGroupName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
+  const [viewingGroupId, setViewingGroupId] = useState<string | null>(null)
   const [isAddingMembers, setIsAddingMembers] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
   const [groupToDelete, setGroupToDelete] = useState<string | null>(null)
 
   const handleCreateGroup = async () => {
-    if (!newGroupName.trim()) return
+    if (!newGroupName.trim() || !currentUser) return
     
     try {
+      // Add current user as the first member of the group
       await createGroup.mutateAsync({
         name: newGroupName,
         baseCurrency: "ARS",
-        members: []
+        members: [currentUser.id],
+        creatorUserId: currentUser.id
       })
       
       toast.success('Grupo creado exitosamente')
@@ -96,7 +109,10 @@ export function GroupsManagement() {
     try {
       await updateGroup.mutateAsync({
         id: selectedGroupId,
-        data: { members: updatedMembers }
+        data: { 
+          members: updatedMembers,
+          updaterUserId: currentUser.id
+        }
       })
       
       toast.success('Miembros añadidos exitosamente')
@@ -112,21 +128,56 @@ export function GroupsManagement() {
     const currentGroup = groups.find(g => g.id === selectedGroupId)
     const existingMembers = currentGroup?.members || []
     
-    return contacts.filter(contact =>
+    // Only show user's contacts that aren't already in the group
+    return myContacts.filter(contact =>
       !existingMembers.includes(contact.id) &&
       (contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
        contact.email.toLowerCase().includes(searchQuery.toLowerCase()))
     )
   }
 
-  // Helper function to get contact name from ID
+  // Helper function to get user name from ID (uses all users for display)
+  const getUserName = (userId: string) => {
+    const user = allUsers.find(u => u.id === userId)
+    return user ? user.name : null
+  }
+  
+  // Get visible members (only those we can find in allUsers)
+  const getVisibleMembers = (memberIds: string[]) => {
+    return memberIds
+      .map(id => ({ id, name: getUserName(id) }))
+      .filter(member => member.name !== null) as Array<{ id: string; name: string }>
+  }
+
+  // Get contact name by ID
   const getContactName = (contactId: string) => {
-    const contact = contacts.find(c => c.id === contactId)
-    return contact ? contact.name : 'Contacto desconocido'
+    const contact = myContacts.find(c => c.id === contactId)
+    return contact?.name || 'Desconocido'
+  }
+
+  // If viewing a specific group, show its detail view
+  if (viewingGroupId) {
+    const group = groups.find(g => g.id === viewingGroupId)
+    return (
+      <div className="space-y-4">
+        <Button 
+          variant="ghost" 
+          onClick={() => setViewingGroupId(null)}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Volver a Grupos
+        </Button>
+        <GroupDetail 
+          groupId={viewingGroupId} 
+          baseCurrency={group?.baseCurrency || 'USD'} 
+        />
+      </div>
+    )
   }
 
   // Loading state
-  if (isLoadingGroups) {
+  if (isLoadingGroups || isLoadingUser || !currentUser) {
     return (
       <div className="p-8 space-y-6">
         <div className="flex items-start justify-between">
@@ -217,8 +268,12 @@ export function GroupsManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {groups.map((group) => (
-          <Card key={group.id ?? `${group.name}-${Math.random()}`} 
-                className="hover:shadow-md transition-all">            <CardHeader>
+          <Card 
+            key={group.id ?? `${group.name}-${Math.random()}`} 
+            className="hover:shadow-md transition-all cursor-pointer"
+            onClick={() => setViewingGroupId(group.id)}
+          >
+            <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="space-y-1 flex-1">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -232,7 +287,10 @@ export function GroupsManagement() {
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={() => handleDeleteGroup(group.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleDeleteGroup(group.id)
+                  }}
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >         
                   <Trash2 className="h-4 w-4" />
@@ -240,24 +298,30 @@ export function GroupsManagement() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {(group.members?.length ?? 0) > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {group.members.map((memberId, idx) => (
-                    <Badge key={idx} variant="secondary">
-                      {getContactName(memberId)}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-2">
-                  No hay miembros en este grupo
-                </p>
-              )}
+              {(() => {
+                const visibleMembers = getVisibleMembers(group.members || [])
+                return visibleMembers.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {visibleMembers.map((member) => (
+                      <Badge key={member.id} variant="secondary">
+                        {member.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    No hay miembros en este grupo
+                  </p>
+                )
+              })()}
               <Button 
                 variant="outline" 
                 size="sm" 
                 className="w-full mt-2"
-                onClick={() => handleOpenAddMembers(group.id)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleOpenAddMembers(group.id)
+                }}
               >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Añadir Miembros

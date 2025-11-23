@@ -8,19 +8,13 @@ import { getAllContacts } from "./contacts.js";
 
 /**
  * Calculates balances for all members in a group
+ * With simplified expense model, expenses are divided equally among ALL group members
  * @param {Object} group - Group object with expenses
  * @returns {Promise<Array>} Array of balance objects for each member
  */
 export async function calculateBalances(group) {
-  if (!group || !group.expenses || group.expenses.length === 0) {
-    // If no expenses, all members have zero balance
-    return group.members.map(memberId => ({
-      memberId,
-      memberName: "Unknown",
-      totalPaid: 0,
-      totalShare: 0,
-      balance: 0,
-    }));
+  if (!group || !group.members || group.members.length === 0) {
+    return [];
   }
 
   // Get contact names for display
@@ -39,29 +33,28 @@ export async function calculateBalances(group) {
     });
   });
 
-  // Calculate totals for each member
+  if (!group.expenses || group.expenses.length === 0) {
+    // If no expenses, all members have zero balance
+    return Array.from(balances.values());
+  }
+
+  // Calculate total expenses and what each person paid
+  let totalExpenses = 0;
   group.expenses.forEach(expense => {
-    // Use convertedAmount (already in group's base currency)
-    const amount = expense.convertedAmount || expense.amount;
+    const amount = expense.amount;
+    totalExpenses += amount;
     
     // Add to payer's totalPaid
     if (balances.has(expense.payer)) {
       const payerBalance = balances.get(expense.payer);
       payerBalance.totalPaid += amount;
     }
+  });
 
-    // Divide expense equally among participants
-    const participants = expense.participants || [];
-    if (participants.length > 0) {
-      const sharePerPerson = amount / participants.length;
-      
-      participants.forEach(participantId => {
-        if (balances.has(participantId)) {
-          const participantBalance = balances.get(participantId);
-          participantBalance.totalShare += sharePerPerson;
-        }
-      });
-    }
+  // Divide total expenses equally among all members
+  const sharePerPerson = totalExpenses / group.members.length;
+  balances.forEach(balance => {
+    balance.totalShare = sharePerPerson;
   });
 
   // Calculate final balance for each member (totalPaid - totalShare)

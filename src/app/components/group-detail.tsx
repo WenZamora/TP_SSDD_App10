@@ -4,13 +4,15 @@ import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs"
 import { Badge } from "@/app/components/ui/badge"
+import { Button } from "@/app/components/ui/button"
 import { Skeleton } from "@/app/components/ui/skeleton"
-import { ArrowRight, Calendar, User, BarChart3, PieChart } from 'lucide-react'
+import { ArrowRight, Calendar, User, BarChart3, PieChart, Plus } from 'lucide-react'
 import { cn } from "@/app/lib/utils"
 import { useGroup } from '@/app/hooks/useGroups'
 import { useContacts } from '@/app/hooks/useContacts'
 import { useGroupBalance } from '@/app/hooks/useBalance'
 import { useExpensesByPerson, useExpensesByCategory } from '@/app/hooks/useStatistics'
+import { AddExpenseModal } from './add-expense-modal'
 
 interface GroupDetailProps {
   groupId: string | null
@@ -23,6 +25,7 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
   const { data: balanceData } = useGroupBalance(groupId || '')
   const { data: expensesByPerson = [] } = useExpensesByPerson(groupId || '')
   const { data: expensesByCategory = [] } = useExpensesByCategory(groupId || '')
+  const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
   
   // Get contact name by ID
   const getContactName = (contactId: string) => {
@@ -50,9 +53,15 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
   
   return (
     <div className="p-8 space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">{group.name}</h2>
-        <p className="text-muted-foreground mt-1">{group.members.length} miembros • {group.description || 'Sin descripción'}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground">{group.name}</h2>
+          <p className="text-muted-foreground mt-1">{group.members.length} miembros • {group.description || 'Sin descripción'}</p>
+        </div>
+        <Button onClick={() => setIsAddExpenseOpen(true)} size="lg">
+          <Plus className="h-4 w-4 mr-2" />
+          Agregar Gasto
+        </Button>
       </div>
 
       <Tabs defaultValue="expenses" className="w-full">
@@ -81,17 +90,7 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2 flex-1">
-                        <div className="flex items-center gap-3">
-                          <h4 className="font-semibold text-foreground">{expense.description}</h4>
-                          <Badge variant="secondary" className="text-xs">
-                            {expense.currency}
-                          </Badge>
-                          {expense.category && (
-                            <Badge variant="outline" className="text-xs">
-                              {expense.category}
-                            </Badge>
-                          )}
-                        </div>
+                        <h4 className="font-semibold text-foreground">{expense.description}</h4>
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1.5">
                             <User className="h-4 w-4" />
@@ -101,15 +100,14 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
                             <Calendar className="h-4 w-4" />
                             <span>{new Date(expense.date).toLocaleDateString('es-ES')}</span>
                           </div>
-                          <span>{expense.participants.length} participantes</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xl font-bold text-foreground">
-                          {expense.convertedAmount.toFixed(2)}
+                      <div className="text-right ml-4">
+                        <div className="text-2xl font-bold text-foreground">
+                          {expense.amount.toFixed(2)}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {(expense.convertedAmount / expense.participants.length).toFixed(2)} c/u
+                          {group.baseCurrency}
                         </div>
                       </div>
                     </div>
@@ -253,6 +251,13 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AddExpenseModal 
+        open={isAddExpenseOpen}
+        onOpenChange={setIsAddExpenseOpen}
+        groupId={groupId}
+        baseCurrency={group.baseCurrency}
+      />
     </div>
   )
 }

@@ -28,13 +28,11 @@ export interface Expense {
   id: string
   description: string
   amount: number
-  currency: string
-  convertedAmount: number // Amount in group's base currency
   payer: string // Contact ID
-  participants: string[] // Array of contact IDs
-  category: string
+  category: ExpenseCategory
   date: number
   createdAt: number
+  updatedAt: number
 }
 
 /**
@@ -187,7 +185,8 @@ export interface CreateGroupDto {
   name: string
   description?: string
   baseCurrency: string
-  members: string[] // Contact IDs
+  members: string[] // Contact IDs (must be in creator's contacts)
+  creatorUserId: string // ID of the user creating the group
 }
 
 /**
@@ -197,7 +196,8 @@ export interface UpdateGroupDto {
   name?: string
   description?: string
   baseCurrency?: string
-  members?: string[]
+  members?: string[] // New members must be in updater's contacts
+  updaterUserId?: string // Required only when updating members
 }
 
 /**
@@ -206,10 +206,8 @@ export interface UpdateGroupDto {
 export interface CreateExpenseDto {
   description: string
   amount: number
-  currency: string
   payer: string // Contact ID
-  participants: string[] // Contact IDs
-  category?: string
+  category: ExpenseCategory
   date?: number
 }
 
@@ -219,10 +217,8 @@ export interface CreateExpenseDto {
 export interface UpdateExpenseDto {
   description?: string
   amount?: number
-  currency?: string
   payer?: string
-  participants?: string[]
-  category?: string
+  category?: ExpenseCategory
   date?: number
 }
 

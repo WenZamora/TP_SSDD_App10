@@ -24,7 +24,7 @@ export async function getExpensesByPerson(group) {
 
   group.expenses.forEach(expense => {
     const payerId = expense.payer;
-    const amount = expense.convertedAmount || expense.amount;
+    const amount = expense.amount;
 
     if (!expensesByPerson.has(payerId)) {
       expensesByPerson.set(payerId, {
@@ -54,49 +54,13 @@ export async function getExpensesByPerson(group) {
 
 /**
  * Gets expenses grouped by category
+ * NOTE: With simplified expense model, categories are not tracked
+ * This function returns an empty array for backwards compatibility
  * @param {Object} group - Group object with expenses
- * @returns {Array} Array of { category, totalAmount, count, percentage }
+ * @returns {Array} Empty array (no categories in simplified model)
  */
 export function getExpensesByCategory(group) {
-  if (!group || !group.expenses || group.expenses.length === 0) {
-    return [];
-  }
-
-  // Aggregate expenses by category
-  const expensesByCategory = new Map();
-  let totalAmount = 0;
-
-  group.expenses.forEach(expense => {
-    const category = expense.category || "General";
-    const amount = expense.convertedAmount || expense.amount;
-
-    if (!expensesByCategory.has(category)) {
-      expensesByCategory.set(category, {
-        category,
-        totalAmount: 0,
-        count: 0,
-      });
-    }
-
-    const categoryData = expensesByCategory.get(category);
-    categoryData.totalAmount += amount;
-    categoryData.count += 1;
-    totalAmount += amount;
-  });
-
-  // Convert to array and calculate percentages
-  const result = Array.from(expensesByCategory.values()).map(item => ({
-    ...item,
-    totalAmount: Math.round(item.totalAmount * 100) / 100,
-    percentage: totalAmount > 0 
-      ? Math.round((item.totalAmount / totalAmount) * 100 * 10) / 10 
-      : 0,
-  }));
-
-  // Sort by total amount descending
-  result.sort((a, b) => b.totalAmount - a.totalAmount);
-
-  return result;
+  return [];
 }
 
 /**
@@ -117,7 +81,7 @@ export function getExpensesByMonth(group) {
     const year = date.getFullYear();
     const month = date.getMonth(); // 0-11
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-    const amount = expense.convertedAmount || expense.amount;
+    const amount = expense.amount;
 
     if (!expensesByMonth.has(monthKey)) {
       expensesByMonth.set(monthKey, {
@@ -164,7 +128,7 @@ export function getTotalGroupExpenses(group) {
 
   let total = 0;
   group.expenses.forEach(expense => {
-    const amount = expense.convertedAmount || expense.amount;
+    const amount = expense.amount;
     total += amount;
   });
 

@@ -3,11 +3,16 @@ import { getAllGroups, addGroup } from "@/app/lib/groups";
 
 /**
  * GET /api/groups
- * Returns all groups
+ * Returns all groups, optionally filtered by user membership
+ * Query params:
+ *  - userId: Optional user ID to filter groups where user is a member
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const groups = await getAllGroups();
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('userId');
+    
+    const groups = await getAllGroups(userId || undefined);
     return NextResponse.json(groups, { status: 200 });
   } catch (error) {
     console.error("Error retrieving groups:", error);
@@ -21,7 +26,7 @@ export async function GET() {
 /**
  * POST /api/groups
  * Creates a new group
- * Body: { name: string, baseCurrency: string, members: string[], description?: string }
+ * Body: { name: string, baseCurrency: string, members: string[], creatorUserId: string, description?: string }
  */
 export async function POST(req: Request) {
   try {
@@ -42,6 +47,13 @@ export async function POST(req: Request) {
       );
     }
     
+    if (!body.creatorUserId || typeof body.creatorUserId !== "string") {
+      return NextResponse.json(
+        { error: "El ID del creador es requerido" },
+        { status: 400 }
+      );
+    }
+    
     if (body.members && !Array.isArray(body.members)) {
       return NextResponse.json(
         { error: "Los miembros deben ser un array" },
@@ -49,18 +61,26 @@ export async function POST(req: Request) {
       );
     }
     
-    const newGroup = await addGroup(body);
+    const newGroup = await addGroup(body, body.creatorUserId);
     return NextResponse.json(newGroup, { status: 201 });
     
   } catch (error) {
     console.error("Error creating group:", error);
     
-    // Check if error is from member validation
-    if (error instanceof Error && error.message.includes("Invalid member IDs")) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+    // Check for specific errors
+    if (error instanceof Error) {
+      if (error.message === "Creator user not found") {
+        return NextResponse.json(
+          { error: "Usuario creador no encontrado" },
+          { status: 404 }
+        );
+      }
+      if (error.message.includes("not in your contact list")) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 400 }
+        );
+      }
     }
     
     return NextResponse.json(

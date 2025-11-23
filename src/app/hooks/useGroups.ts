@@ -6,17 +6,22 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useUser } from '@/app/providers/user-provider'
 import { groupsService } from '@/app/services/groups.service'
 import type { Group, CreateGroupDto, UpdateGroupDto } from '@/app/types'
 
 /**
- * Hook to fetch all groups
+ * Hook to fetch all groups for the current user
+ * Automatically filters groups to show only those where the user is a member
  * @returns Query with groups data
  */
 export function useGroups() {
+  const { currentUser } = useUser()
+  
   return useQuery<Group[], Error>({
-    queryKey: ['groups'],
-    queryFn: groupsService.getAllGroups,
+    queryKey: ['groups', currentUser?.id],
+    queryFn: () => groupsService.getAllGroups(currentUser?.id),
+    enabled: !!currentUser, // Only fetch when we have a current user
   })
 }
 

@@ -103,7 +103,7 @@ export function useDeleteContact() {
 
 /**
  * Hook to add an existing user as a contact to another user
- * Automatically invalidates user's contacts on success
+ * Refetches user's contacts on success
  * @returns Mutation for adding a contact to a user
  */
 export function useAddContactToUser() {
@@ -112,27 +112,66 @@ export function useAddContactToUser() {
   return useMutation<void, Error, { userId: string; contactId: string }>({
     mutationFn: ({ userId, contactId }) => contactsService.addContactToUser(userId, contactId),
     onSuccess: (_, variables) => {
-      // Refetch user's contacts immediately
-      queryClient.refetchQueries({ queryKey: ['contacts', 'user', variables.userId] })
-      queryClient.refetchQueries({ queryKey: ['contacts'] })
+      // Invalidate and refetch user's contacts
+      queryClient.invalidateQueries({ queryKey: ['contacts', 'user', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['contacts'] })
     },
   })
 }
 
 /**
  * Hook to remove a contact from a user's contact list
- * Automatically refetches user's contacts on success
+ * Uses optimistic updates for instant UI feedback
  * @returns Mutation for removing a contact from a user
  */
 export function useRemoveContactFromUser() {
   const queryClient = useQueryClient()
   
   return useMutation<void, Error, { userId: string; contactId: string }>({
-    mutationFn: ({ userId, contactId }) => contactsService.removeContactFromUser(userId, contactId),
-    onSuccess: (_, variables) => {
-      // Force immediate refetch of user's contacts
-      queryClient.refetchQueries({ queryKey: ['contacts', 'user', variables.userId] })
-      queryClient.refetchQueries({ queryKey: ['contacts'] })
+    mutationFn: ({ userId, contactId }) => {
+      console.log('[useRemoveContactFromUser] mutationFn called:', { userId, contactId })
+      return contactsService.removeContactFromUser(userId, contactId)
+    },
+    // Optimistic update: immediately update UI before API call completes
+    onMutate: async ({ userId, contactId }) => {
+      console.log('[useRemoveContactFromUser] onMutate:', { userId, contactId })
+      
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['contacts', 'user', userId] })
+      
+      // Snapshot the previous value
+      const previousContacts = queryClient.getQueryData<Contact[]>(['contacts', 'user', userId])
+      console.log('[useRemoveContactFromUser] Previous contacts:', previousContacts?.length || 0)
+      
+      // Optimistically update to the new value
+      if (previousContacts) {
+        const newContacts = previousContacts.filter(contact => contact.id !== contactId)
+        console.log('[useRemoveContactFromUser] Setting optimistic data:', newContacts.length)
+        queryClient.setQueryData<Contact[]>(
+          ['contacts', 'user', userId],
+          newContacts
+        )
+      }
+      
+      // Return context with the snapshot
+      return { previousContacts }
+    },
+    // If mutation fails, use the context to roll back
+    onError: (err, variables, context) => {
+      console.error('[useRemoveContactFromUser] onError:', err)
+      if (context?.previousContacts) {
+        console.log('[useRemoveContactFromUser] Rolling back to previous contacts')
+        queryClient.setQueryData(
+          ['contacts', 'user', variables.userId],
+          context.previousContacts
+        )
+      }
+    },
+    // Always refetch after error or success
+    onSettled: (_, __, variables) => {
+      console.log('[useRemoveContactFromUser] onSettled - invalidating queries')
+      queryClient.invalidateQueries({ queryKey: ['contacts', 'user', variables.userId] })
+      queryClient.invalidateQueries({ queryKey: ['contacts'] })
     },
   })
 }

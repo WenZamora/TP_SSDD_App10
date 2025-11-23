@@ -1,22 +1,48 @@
 import { NextResponse } from "next/server";
 import { updateExpense, deleteExpense, getGroupById } from "@/app/lib/groups";
-import { convertAmount } from "@/app/lib/exchange";
 
 /**
  * PUT /api/groups/[id]/expenses/[expenseId]
  * Updates an expense
- * Body: Partial<Expense>
+ * Body: { description?, amount?, payer?, category?, date? }
  */
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string; expenseId: string } }
+  { params }: { params: Promise<{ id: string; expenseId: string }> }
 ) {
   try {
+    const { id, expenseId } = await params;
     const body = await req.json();
     
-    // If amount or currency changed, recalculate conversion
-    if (body.amount !== undefined || body.currency !== undefined) {
-      const group = await getGroupById(params.id);
+    // Validation
+    if (body.description !== undefined && (typeof body.description !== "string" || body.description.trim() === "")) {
+      return NextResponse.json(
+        { error: "La descripción no puede estar vacía" },
+        { status: 400 }
+      );
+    }
+    
+    if (body.amount !== undefined && (typeof body.amount !== "number" || body.amount <= 0)) {
+      return NextResponse.json(
+        { error: "El monto debe ser un número positivo" },
+        { status: 400 }
+      );
+    }
+    
+    // If category is being updated, validate it's valid
+    if (body.category !== undefined) {
+      const validCategories = ['Food', 'Transport', 'Accommodation', 'Entertainment', 'Shopping', 'Health', 'Education', 'Utilities', 'Other', 'General'];
+      if (!validCategories.includes(body.category)) {
+        return NextResponse.json(
+          { error: "Categoría inválida" },
+          { status: 400 }
+        );
+      }
+    }
+    
+    // If payer is being updated, validate they are a member
+    if (body.payer !== undefined) {
+      const group = await getGroupById(id);
       if (!group) {
         return NextResponse.json(
           { error: "Grupo no encontrado" },
@@ -24,30 +50,15 @@ export async function PUT(
         );
       }
       
-      // Find the expense to get current values
-      const currentExpense = group.expenses.find(e => e.id === params.expenseId);
-      if (!currentExpense) {
+      if (!group.members.includes(body.payer)) {
         return NextResponse.json(
-          { error: "Gasto no encontrado" },
-          { status: 404 }
+          { error: "El pagador debe ser miembro del grupo" },
+          { status: 400 }
         );
       }
-      
-      // Use new values or fall back to current
-      const amount = body.amount !== undefined ? body.amount : currentExpense.amount;
-      const currency = body.currency !== undefined ? body.currency : currentExpense.currency;
-      
-      // Recalculate converted amount
-      const convertedAmount = await convertAmount(
-        amount,
-        currency,
-        group.baseCurrency
-      );
-      
-      body.convertedAmount = convertedAmount;
     }
     
-    const updatedExpense = await updateExpense(params.id, params.expenseId, body);
+    const updatedExpense = await updateExpense(id, expenseId, body);
     
     if (!updatedExpense) {
       return NextResponse.json(
@@ -73,10 +84,11 @@ export async function PUT(
  */
 export async function DELETE(
   _: Request,
-  { params }: { params: { id: string; expenseId: string } }
+  { params }: { params: Promise<{ id: string; expenseId: string }> }
 ) {
   try {
-    const deleted = await deleteExpense(params.id, params.expenseId);
+    const { id, expenseId } = await params;
+    const deleted = await deleteExpense(id, expenseId);
     
     if (!deleted) {
       return NextResponse.json(

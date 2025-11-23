@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
@@ -12,18 +12,12 @@ import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/app/components/ui/alert-dialog"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog"
 import { toast } from 'sonner'
+import { useUser } from '@/app/providers/user-provider'
 import { useContacts, useUserContacts, useCreateContact, useAddContactToUser, useRemoveContactFromUser } from '@/app/hooks/useContacts'
-import type { Contact, User } from '@/app/types'
+import type { Contact } from '@/app/types'
 
 export function ContactsManagement() {
-  const [currentUser, setCurrentUser] = useState<User | null>(null)
-  
-  useEffect(() => {
-    const storedUser = localStorage.getItem('splitwise_user')
-    if (storedUser) {
-      setCurrentUser(JSON.parse(storedUser))
-    }
-  }, [])
+  const { currentUser, isLoading: isLoadingUser } = useUser()
   
   // Get current user's contacts
   const { data: myContacts = [], isLoading: isLoadingMyContacts, error: myContactsError } = useUserContacts(currentUser?.id || null)
@@ -91,14 +85,18 @@ export function ContactsManagement() {
   const confirmRemoveContact = async () => {
     if (!contactToRemove || !currentUser) return
     
+    console.log('[ContactsManagement] Removing contact:', { userId: currentUser.id, contactId: contactToRemove })
+    
     try {
       await removeContactFromUser.mutateAsync({
         userId: currentUser.id,
         contactId: contactToRemove
       })
+      console.log('[ContactsManagement] Contact removed successfully')
       toast.success('Contacto eliminado de tu lista')
       setContactToRemove(null)
     } catch (err: any) {
+      console.error('[ContactsManagement] Error removing contact:', err)
       toast.error(err.message || "No se pudo eliminar el contacto")
       setContactToRemove(null)
     }
@@ -119,7 +117,7 @@ export function ContactsManagement() {
   )
 
   // Loading state
-  if (isLoadingMyContacts || !currentUser) {
+  if (isLoadingMyContacts || isLoadingUser || !currentUser) {
     return (
       <div className="p-8 space-y-8">
         <div>

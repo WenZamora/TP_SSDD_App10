@@ -50,6 +50,8 @@ Thumbs.db
 # pnpm
 .pnpm-debug.log*
 
+.specs/
+
 # package manager locks (keep the one you're using)
 # Uncomment the ones you don't use:
 # pnpm-lock.yaml

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PieChart, TrendingUp, TrendingDown, Calendar, DollarSign } from 'lucide-react'
 import { cn } from "@/app/lib/utils"
 import { useState, useMemo } from 'react'
+import { useUser } from '@/app/providers/user-provider'
 import { useGroups } from '@/app/hooks/useGroups'
 import { useContacts } from '@/app/hooks/useContacts'
 import { useGroupBalance } from '@/app/hooks/useBalance'
@@ -19,36 +20,33 @@ interface BalanceHistoryModalProps {
 
 export function BalanceHistoryModal({ open, onOpenChange, baseCurrency }: BalanceHistoryModalProps) {
   const [selectedGroup, setSelectedGroup] = useState('all')
+  const { currentUser } = useUser()
   const { data: groups = [] } = useGroups()
   const { data: allContacts = [] } = useContacts()
   
-  // Get current user ID (this should come from a user context/hook in real app)
-  const currentUserId = useMemo(() => {
-    // For now, get from localStorage
-    const storedUser = localStorage.getItem('splitwise_user')
-    if (storedUser) {
-      return JSON.parse(storedUser).id
-    }
-    return null
-  }, [])
+  // Get current user ID from context
+  const currentUserId = currentUser?.id || null
 
   // Calculate group breakdowns
   const detailedBreakdown = useMemo(() => {
     const filteredGroups = selectedGroup === 'all' ? groups : groups.filter(g => g.id === selectedGroup)
     
     return filteredGroups.map(group => {
-      const contact = allContacts.find(c => c.id === currentUserId)
-      if (!contact) return null
+      // Only calculate if current user is a member of this group
+      if (!currentUserId || !group.members.includes(currentUserId)) return null
       
       // Calculate total paid by current user
       const totalPaid = group.expenses
         .filter(e => e.payer === currentUserId)
-        .reduce((sum, e) => sum + e.convertedAmount, 0)
+        .reduce((sum, e) => sum + (e.amount || 0), 0)
       
       // Calculate total share (what current user should pay)
-      const totalShare = group.expenses
-        .filter(e => e.participants.includes(currentUserId))
-        .reduce((sum, e) => sum + (e.convertedAmount / e.participants.length), 0)
+      // All group members participate in each expense (expenses are split equally)
+      const totalShare = group.expenses.reduce((sum, e) => {
+        const amount = e.amount || 0
+        const numParticipants = group.members.length
+        return sum + (amount / numParticipants)
+      }, 0)
       
       const balance = totalPaid - totalShare
       
@@ -64,7 +62,7 @@ export function BalanceHistoryModal({ open, onOpenChange, baseCurrency }: Balanc
         participants: group.members.length
       }
     }).filter(Boolean)
-  }, [groups, selectedGroup, allContacts, currentUserId])
+  }, [groups, selectedGroup, currentUserId])
   
   // Calculate historical balances summary
   const historicalBalances = useMemo(() => {

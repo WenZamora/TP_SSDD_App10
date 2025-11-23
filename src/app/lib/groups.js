@@ -2,11 +2,20 @@ import { readDB, writeDB } from "./db.js";
 import { v4 as uuidv4 } from "uuid"; //para gerar ID unicos
 
 /**
- * Gets all groups from the database
- * @returns {Promise<Array>} Array of all groups
+ * Gets all groups from the database, optionally filtered by user membership
+ * @param {string} [userId] - Optional user ID to filter groups by membership
+ * @returns {Promise<Array>} Array of all groups (filtered if userId provided)
  */
-export async function getAllGroups() {
+export async function getAllGroups(userId) {
   const db = await readDB();
+  
+  // If userId is provided, filter groups to only those where user is a member
+  if (userId) {
+    return db.groups.filter(group => 
+      group.members && group.members.includes(userId)
+    );
+  }
+  
   return db.groups; // devuelve el array de grupos
 }
 
@@ -23,18 +32,25 @@ export async function getGroupById(id) {
 /**
  * Creates a new group
  * @param {Object} data - Group data { name, baseCurrency, members, description }
+ * @param {string} creatorUserId - ID of the user creating the group
  * @returns {Promise<Object>} The created group
- * @throws {Error} If members don't exist in contacts
+ * @throws {Error} If creator not found or members are not in creator's contacts
  */
-export async function addGroup(data) {
+export async function addGroup(data, creatorUserId) {
   const db = await readDB();
 
-  // Validate that all members exist in contacts
+  // Find the creator user
+  const creator = db.users.find(u => u.id === creatorUserId);
+  if (!creator) {
+    throw new Error("Creator user not found");
+  }
+
+  // Validate that all members are in the creator's contact list (or the creator themselves)
   if (data.members && data.members.length > 0) {
-    const contactIds = db.contacts.map(c => c.id);
-    const invalidMembers = data.members.filter(m => !contactIds.includes(m));
+    const allowedMemberIds = [...creator.contacts, creatorUserId]; // Creator can add themselves
+    const invalidMembers = data.members.filter(m => !allowedMemberIds.includes(m));
     if (invalidMembers.length > 0) {
-      throw new Error(`Invalid member IDs: ${invalidMembers.join(", ")}`);
+      throw new Error(`Some members are not in your contact list. Add them as contacts first.`);
     }
   }
 
@@ -60,10 +76,11 @@ export async function addGroup(data) {
  * Updates a group's data
  * @param {string} id - Group ID
  * @param {Object} updatedData - Data to update
+ * @param {string} updaterUserId - ID of the user updating the group
  * @returns {Promise<Object|null>} Updated group or null if not found
- * @throws {Error} If members don't exist in contacts
+ * @throws {Error} If updater not found or new members are not in updater's contacts
  */
-export async function updateGroup(id, updatedData) {
+export async function updateGroup(id, updatedData, updaterUserId) {
   const db = await readDB();
 
   const index = db.groups.findIndex((g) => g.id === id);
@@ -71,10 +88,22 @@ export async function updateGroup(id, updatedData) {
 
   // Validate members if they're being updated
   if (updatedData.members && updatedData.members.length > 0) {
-    const contactIds = db.contacts.map(c => c.id);
-    const invalidMembers = updatedData.members.filter(m => !contactIds.includes(m));
-    if (invalidMembers.length > 0) {
-      throw new Error(`Invalid member IDs: ${invalidMembers.join(", ")}`);
+    // Find the updater user
+    const updater = db.users.find(u => u.id === updaterUserId);
+    if (!updater) {
+      throw new Error("Updater user not found");
+    }
+
+    // Validate that all NEW members are in the updater's contact list
+    const currentMembers = db.groups[index].members || [];
+    const newMembers = updatedData.members.filter(m => !currentMembers.includes(m));
+    
+    if (newMembers.length > 0) {
+      const allowedMemberIds = [...updater.contacts, updaterUserId];
+      const invalidMembers = newMembers.filter(m => !allowedMemberIds.includes(m));
+      if (invalidMembers.length > 0) {
+        throw new Error(`Some members are not in your contact list. Add them as contacts first.`);
+      }
     }
   }
 
@@ -108,7 +137,7 @@ export async function deleteGroup(id) {
 /**
  * Adds an expense to a group
  * @param {string} groupId - Group ID
- * @param {Object} expenseData - Expense data
+ * @param {Object} expenseData - Expense data { description, amount, payer, category, date }
  * @returns {Promise<Object|null>} Created expense or null if group not found
  */
 export async function addExpenseToGroup(groupId, expenseData) {
@@ -122,13 +151,11 @@ export async function addExpenseToGroup(groupId, expenseData) {
     id: uuidv4(),
     description: expenseData.description,
     amount: expenseData.amount,
-    currency: expenseData.currency,
-    convertedAmount: expenseData.convertedAmount || expenseData.amount, // Use provided or default to amount
     payer: expenseData.payer,
-    participants: expenseData.participants,
-    category: expenseData.category || "General",
+    category: expenseData.category || 'Other',
     date: expenseData.date || now,
     createdAt: now,
+    updatedAt: now,
   };
 
   group.expenses.push(newExpense);
@@ -156,7 +183,7 @@ export async function getGroupExpenses(groupId) {
  * Updates an expense in a group
  * @param {string} groupId - Group ID
  * @param {string} expenseId - Expense ID
- * @param {Object} updatedData - Data to update
+ * @param {Object} updatedData - Data to update { description?, amount?, payer?, category?, date? }
  * @returns {Promise<Object|null>} Updated expense or null if not found
  */
 export async function updateExpense(groupId, expenseId, updatedData) {
@@ -168,14 +195,16 @@ export async function updateExpense(groupId, expenseId, updatedData) {
   const expenseIndex = group.expenses.findIndex((e) => e.id === expenseId);
   if (expenseIndex === -1) return null;
   
+  const now = Date.now();
   // Merge updated data with existing expense
   group.expenses[expenseIndex] = {
     ...group.expenses[expenseIndex],
     ...updatedData,
+    updatedAt: now,
   };
   
   // Update group's updatedAt
-  group.updatedAt = Date.now();
+  group.updatedAt = now;
   
   await writeDB(db);
   return group.expenses[expenseIndex];

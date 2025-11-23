@@ -34,41 +34,41 @@ async function handleErrorResponse(response: Response): Promise<never> {
  */
 export const contactsService = {
   /**
-   * Get all contacts (all users in the system)
-   * GET /api/contacts
+   * Get all users in the system (for adding new contacts)
+   * GET /api/users
    */
   getAllContacts: async (): Promise<Contact[]> => {
-    const res = await fetch("/api/contacts", { cache: "no-store" })
+    const res = await fetch("/api/users", { cache: "no-store" })
     if (!res.ok) await handleErrorResponse(res)
     return res.json()
   },
   
   /**
    * Get contacts for a specific user
-   * GET /api/contacts?userId=xxx
+   * GET /api/users/{userId}/contacts
    */
   getUserContacts: async (userId: string): Promise<Contact[]> => {
-    const res = await fetch(`/api/contacts?userId=${userId}`, { cache: "no-store" })
+    const res = await fetch(`/api/users/${userId}/contacts`, { cache: "no-store" })
     if (!res.ok) await handleErrorResponse(res)
     return res.json()
   },
   
   /**
-   * Get a single contact by ID
-   * GET /api/contacts/[id]
+   * Get a single user by ID
+   * GET /api/users/[id]
    */
   getContactById: async (id: string): Promise<Contact> => {
-    const res = await fetch(`/api/contacts/${id}`, { cache: "no-store" })
+    const res = await fetch(`/api/users/${id}`, { cache: "no-store" })
     if (!res.ok) await handleErrorResponse(res)
     return res.json()
   },
   
   /**
-   * Create a new contact (new user in the system)
-   * POST /api/contacts
+   * Create a new user in the system
+   * POST /api/users
    */
   createContact: async (data: CreateContactDto): Promise<Contact> => {
-    const res = await fetch("/api/contacts", {
+    const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -79,23 +79,23 @@ export const contactsService = {
   
   /**
    * Add an existing user as a contact to another user
-   * POST /api/contacts
+   * POST /api/users/{userId}/contacts
    */
   addContactToUser: async (userId: string, contactId: string): Promise<void> => {
-    const res = await fetch("/api/contacts", {
+    const res = await fetch(`/api/users/${userId}/contacts`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, contactId }),
+      body: JSON.stringify({ contactId }),
     })
     if (!res.ok) await handleErrorResponse(res)
   },
   
   /**
-   * Update a contact
-   * PUT /api/contacts/[id]
+   * Update a user
+   * PUT /api/users/[id]
    */
   updateContact: async (id: string, data: UpdateContactDto): Promise<Contact> => {
-    const res = await fetch(`/api/contacts/${id}`, {
+    const res = await fetch(`/api/users/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
@@ -105,22 +105,28 @@ export const contactsService = {
   },
   
   /**
-   * Delete a contact (delete user from system - admin operation)
-   * DELETE /api/contacts/[id]
-   * Note: Will fail with 409 if contact is a member of any group
+   * Delete a user from system (admin operation)
+   * DELETE /api/users/[id]
+   * Note: Will fail with 409 if user is a member of any group
    */
   deleteContact: async (id: string): Promise<void> => {
-    const res = await fetch(`/api/contacts/${id}`, { method: "DELETE" })
+    const res = await fetch(`/api/users/${id}`, { method: "DELETE" })
     if (!res.ok) await handleErrorResponse(res)
   },
   
   /**
    * Remove a contact from a user's contact list
-   * DELETE /api/contacts/[id]?userId=xxx
+   * DELETE /api/users/{userId}/contacts/{contactId}
    */
   removeContactFromUser: async (userId: string, contactId: string): Promise<void> => {
-    const res = await fetch(`/api/contacts/${contactId}?userId=${userId}`, { method: "DELETE" })
+    console.log('[contactsService] Removing contact:', { userId, contactId })
+    const res = await fetch(`/api/users/${userId}/contacts/${contactId}`, { 
+      method: "DELETE",
+      cache: "no-store"
+    })
+    console.log('[contactsService] Response status:', res.status)
     if (!res.ok) await handleErrorResponse(res)
+    console.log('[contactsService] Contact removed successfully')
   },
 }
 

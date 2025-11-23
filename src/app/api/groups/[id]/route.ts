@@ -5,9 +5,10 @@ import { getGroupById, updateGroup, deleteGroup } from "@/app/lib/groups";
  * GET /api/groups/[id]
  * Returns a single group by ID
  */
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const group = await getGroupById(params.id);
+    const { id } = await params;
+    const group = await getGroupById(id);
     
     if (!group) {
       return NextResponse.json(
@@ -29,10 +30,11 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 /**
  * PUT /api/groups/[id]
  * Updates a group
- * Body: Partial<Group>
+ * Body: Partial<Group> & { updaterUserId: string }
  */
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const data = await req.json();
     
     // Validate members array if provided
@@ -43,7 +45,16 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       );
     }
     
-    const updatedGroup = await updateGroup(params.id, data);
+    // Require updaterUserId if members are being updated
+    if (data.members && !data.updaterUserId) {
+      return NextResponse.json(
+        { error: "El ID del usuario es requerido para actualizar miembros" },
+        { status: 400 }
+      );
+    }
+    
+    const { updaterUserId, ...updateData } = data;
+    const updatedGroup = await updateGroup(id, updateData, updaterUserId);
     
     if (!updatedGroup) {
       return NextResponse.json(
@@ -57,12 +68,20 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   } catch (error) {
     console.error("Error updating group:", error);
     
-    // Check if error is from member validation
-    if (error instanceof Error && error.message.includes("Invalid member IDs")) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      );
+    // Check for specific errors
+    if (error instanceof Error) {
+      if (error.message === "Updater user not found") {
+        return NextResponse.json(
+          { error: "Usuario no encontrado" },
+          { status: 404 }
+        );
+      }
+      if (error.message.includes("not in your contact list")) {
+        return NextResponse.json(
+          { error: error.message },
+          { status: 400 }
+        );
+      }
     }
     
     return NextResponse.json(
@@ -76,9 +95,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
  * DELETE /api/groups/[id]
  * Deletes a group
  */
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const deleted = await deleteGroup(params.id);
+    const { id } = await params;
+    const deleted = await deleteGroup(id);
     
     if (!deleted) {
       return NextResponse.json(
