@@ -1,0 +1,368 @@
+{
+  "contacts": [
+    {
+      "id": "contact-1",
+      "name": "Juan Pérez",
+      "email": "juan.perez@example.com",
+      "avatar": "/placeholder-user.jpg",
+      "createdAt": 1700000000000
+    },
+    {
+      "id": "contact-2",
+      "name": "María García",
+      "email": "maria.garcia@example.com",
+      "avatar": "/placeholder-user.jpg",
+      "createdAt": 1700100000000
+    },
+    {
+      "id": "contact-3",
+      "name": "Carlos López",
+      "email": "carlos.lopez@example.com",
+      "avatar": "/placeholder-user.jpg",
+      "createdAt": 1700200000000
+    },
+    {
+      "id": "contact-4",
+      "name": "Ana Martínez",
+      "email": "ana.martinez@example.com",
+      "avatar": "/placeholder-user.jpg",
+      "createdAt": 1700300000000
+    },
+    {
+      "id": "contact-5",
+      "name": "Pedro Rodríguez",
+      "email": "pedro.rodriguez@example.com",
+      "avatar": "/placeholder-user.jpg",
+      "createdAt": 1700400000000
+    },
+    {
+      "id": "contact-6",
+      "name": "Laura Fernández",
+      "email": "laura.fernandez@example.com",
+      "avatar": "/placeholder-user.jpg",
+      "createdAt": 1700500000000
+    }
+  ],
+  "groups": [
+    {
+      "id": "group-1",
+      "name": "Viaje a Bariloche",
+      "description": "Vacaciones de invierno en la Patagonia",
+      "baseCurrency": "ARS",
+      "members": [
+        "contact-1",
+        "contact-2",
+        "contact-3"
+      ],
+      "expenses": [
+        {
+          "id": "expense-1",
+          "description": "Alquiler de cabaña",
+          "amount": 180000,
+          "currency": "ARS",
+          "convertedAmount": 180000,
+          "category": "Alojamiento",
+          "payer": "contact-1",
+          "participants": [
+            "contact-1",
+            "contact-2",
+            "contact-3"
+          ],
+          "date": 1704067200000,
+          "createdAt": 1704067200000,
+          "updatedAt": 1704067200000
+        },
+        {
+          "id": "expense-2",
+          "description": "Supermercado",
+          "amount": 45000,
+          "currency": "ARS",
+          "convertedAmount": 45000,
+          "category": "Comida",
+          "payer": "contact-2",
+          "participants": [
+            "contact-1",
+            "contact-2",
+            "contact-3"
+          ],
+          "date": 1704153600000,
+          "createdAt": 1704153600000,
+          "updatedAt": 1704153600000
+        },
+        {
+          "id": "expense-3",
+          "description": "Restaurante Cerro Catedral",
+          "amount": 72000,
+          "currency": "ARS",
+          "convertedAmount": 72000,
+          "category": "Comida",
+          "payer": "contact-3",
+          "participants": [
+            "contact-1",
+            "contact-2",
+            "contact-3"
+          ],
+          "date": 1704240000000,
+          "createdAt": 1704240000000,
+          "updatedAt": 1704240000000
+        },
+        {
+          "id": "expense-4",
+          "description": "Nafta para el viaje",
+          "amount": 50000,
+          "currency": "ARS",
+          "convertedAmount": 50000,
+          "category": "Transporte",
+          "payer": "contact-1",
+          "participants": [
+            "contact-1",
+            "contact-2",
+            "contact-3"
+          ],
+          "date": 1704067200000,
+          "createdAt": 1704067200000,
+          "updatedAt": 1704067200000
+        },
+        {
+          "id": "expense-5",
+          "description": "Pase de esquí (3 días)",
+          "amount": 120000,
+          "currency": "ARS",
+          "convertedAmount": 120000,
+          "category": "Entretenimiento",
+          "payer": "contact-2",
+          "participants": [
+            "contact-1",
+            "contact-2",
+            "contact-3"
+          ],
+          "date": 1704153600000,
+          "createdAt": 1704153600000,
+          "updatedAt": 1704153600000
+        }
+      ],
+      "createdAt": 1704000000000,
+      "updatedAt": 1704240000000
+    },
+    {
+      "id": "group-2",
+      "name": "Cena de Cumpleaños",
+      "description": "Festejo de cumpleaños de María",
+      "baseCurrency": "ARS",
+      "members": [
+        "contact-2",
+        "contact-4",
+        "contact-5",
+        "contact-6"
+      ],
+      "expenses": [
+        {
+          "id": "expense-6",
+          "description": "Restaurante Don Julio",
+          "amount": 85000,
+          "currency": "ARS",
+          "convertedAmount": 85000,
+          "category": "Comida",
+          "payer": "contact-4",
+          "participants": [
+            "contact-2",
+            "contact-4",
+            "contact-5",
+            "contact-6"
+          ],
+          "date": 1705622400000,
+          "createdAt": 1705622400000,
+          "updatedAt": 1705622400000
+        },
+        {
+          "id": "expense-7",
+          "description": "Torta de cumpleaños",
+          "amount": 18000,
+          "currency": "ARS",
+          "convertedAmount": 18000,
+          "category": "Comida",
+          "payer": "contact-5",
+          "participants": [
+            "contact-2",
+            "contact-4",
+            "contact-5",
+            "contact-6"
+          ],
+          "date": 1705622400000,
+          "createdAt": 1705622400000,
+          "updatedAt": 1705622400000
+        },
+        {
+          "id": "expense-8",
+          "description": "Decoración y globos",
+          "amount": 12000,
+          "currency": "ARS",
+          "convertedAmount": 12000,
+          "category": "Entretenimiento",
+          "payer": "contact-6",
+          "participants": [
+            "contact-2",
+            "contact-4",
+            "contact-5",
+            "contact-6"
+          ],
+          "date": 1705622400000,
+          "createdAt": 1705622400000,
+          "updatedAt": 1705622400000
+        }
+      ],
+      "createdAt": 1705600000000,
+      "updatedAt": 1705622400000
+    },
+    {
+      "id": "group-3",
+      "name": "Proyecto Universidad",
+      "description": "Gastos del proyecto final de carrera",
+      "baseCurrency": "ARS",
+      "members": [
+        "contact-1",
+        "contact-3",
+        "contact-4"
+      ],
+      "expenses": [
+        {
+          "id": "expense-9",
+          "description": "Impresiones y materiales",
+          "amount": 15000,
+          "currency": "ARS",
+          "convertedAmount": 15000,
+          "category": "Materiales",
+          "payer": "contact-1",
+          "participants": [
+            "contact-1",
+            "contact-3",
+            "contact-4"
+          ],
+          "date": 1706227200000,
+          "createdAt": 1706227200000,
+          "updatedAt": 1706227200000
+        },
+        {
+          "id": "expense-10",
+          "description": "Arduino y sensores",
+          "amount": 35000,
+          "currency": "ARS",
+          "convertedAmount": 35000,
+          "category": "Materiales",
+          "payer": "contact-3",
+          "participants": [
+            "contact-1",
+            "contact-3",
+            "contact-4"
+          ],
+          "date": 1706313600000,
+          "createdAt": 1706313600000,
+          "updatedAt": 1706313600000
+        },
+        {
+          "id": "expense-11",
+          "description": "Cafetería durante reuniones",
+          "amount": 9000,
+          "currency": "ARS",
+          "convertedAmount": 9000,
+          "category": "Comida",
+          "payer": "contact-4",
+          "participants": [
+            "contact-1",
+            "contact-3",
+            "contact-4"
+          ],
+          "date": 1706400000000,
+          "createdAt": 1706400000000,
+          "updatedAt": 1706400000000
+        }
+      ],
+      "createdAt": 1706200000000,
+      "updatedAt": 1706400000000
+    },
+    {
+      "id": "group-4",
+      "name": "Compartir Departamento",
+      "description": "Gastos mensuales del departamento compartido",
+      "baseCurrency": "ARS",
+      "members": [
+        "contact-1",
+        "contact-2"
+      ],
+      "expenses": [
+        {
+          "id": "expense-12",
+          "description": "Alquiler Diciembre",
+          "amount": 150000,
+          "currency": "ARS",
+          "convertedAmount": 150000,
+          "category": "Alojamiento",
+          "payer": "contact-1",
+          "participants": [
+            "contact-1",
+            "contact-2"
+          ],
+          "date": 1701388800000,
+          "createdAt": 1701388800000,
+          "updatedAt": 1701388800000
+        },
+        {
+          "id": "expense-13",
+          "description": "Servicios (luz, gas, agua)",
+          "amount": 32000,
+          "currency": "ARS",
+          "convertedAmount": 32000,
+          "category": "Servicios",
+          "payer": "contact-2",
+          "participants": [
+            "contact-1",
+            "contact-2"
+          ],
+          "date": 1701475200000,
+          "createdAt": 1701475200000,
+          "updatedAt": 1701475200000
+        },
+        {
+          "id": "expense-14",
+          "description": "Internet y cable",
+          "amount": 18000,
+          "currency": "ARS",
+          "convertedAmount": 18000,
+          "category": "Servicios",
+          "payer": "contact-1",
+          "participants": [
+            "contact-1",
+            "contact-2"
+          ],
+          "date": 1701561600000,
+          "createdAt": 1701561600000,
+          "updatedAt": 1701561600000
+        },
+        {
+          "id": "expense-15",
+          "description": "Limpieza y productos",
+          "amount": 8000,
+          "currency": "ARS",
+          "convertedAmount": 8000,
+          "category": "Hogar",
+          "payer": "contact-2",
+          "participants": [
+            "contact-1",
+            "contact-2"
+          ],
+          "date": 1701648000000,
+          "createdAt": 1701648000000,
+          "updatedAt": 1701648000000
+        }
+      ],
+      "createdAt": 1701300000000,
+      "updatedAt": 1701648000000
+    }
+  ],
+  "currentUser": {
+    "id": "contact-1",
+    "name": "Juan Pérez",
+    "email": "juan.perez@example.com",
+    "avatar": "/placeholder-user.jpg"
+  }
+}
