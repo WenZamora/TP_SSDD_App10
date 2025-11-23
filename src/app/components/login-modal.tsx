@@ -8,18 +8,42 @@ import { Label } from "@/app/components/ui/label"
 import { DollarSign } from 'lucide-react'
 
 interface LoginModalProps {
-  onLogin: (name: string, email?: string) => void
+  onLogin: (name: string, email: string) => void
 }
 
 export function LoginModal({ onLogin }: LoginModalProps) {
   const [name, setName] = useState('')
-  const [isRegistering, setIsRegistering] = useState(false)
   const [email, setEmail] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (name.trim()) {
-      onLogin(name.trim(), isRegistering ? email : undefined)
+    setError('')
+    
+    if (!name.trim()) {
+      setError('El nombre es requerido')
+      return
+    }
+    
+    if (!email.trim()) {
+      setError('El email es requerido')
+      return
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      setError('Por favor ingresa un email válido')
+      return
+    }
+    
+    setIsLoading(true)
+    try {
+      await onLogin(name.trim(), email.trim())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al iniciar sesión')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -34,20 +58,17 @@ export function LoginModal({ onLogin }: LoginModalProps) {
           </div>
           <div>
             <CardTitle className="text-2xl">
-              {isRegistering ? 'Registro - App10' : 'Bienvenido a App10'}
+              Bienvenido a App10
             </CardTitle>
             <CardDescription className="mt-2">
-              {isRegistering 
-                ? 'Completa tus datos básicos para crear tu cuenta'
-                : 'Ingresa tu nombre para comenzar a gestionar gastos compartidos'
-              }
+              Ingresa tus datos para comenzar a gestionar gastos compartidos
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Nombre de Usuario / Alias *</Label>
+              <Label htmlFor="username">Nombre Completo *</Label>
               <Input
                 id="username"
                 placeholder="Ej: Juan Pérez"
@@ -55,42 +76,39 @@ export function LoginModal({ onLogin }: LoginModalProps) {
                 onChange={(e) => setName(e.target.value)}
                 autoFocus
                 className="h-11"
+                disabled={isLoading}
               />
             </div>
 
-            {isRegistering && (
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-11"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="tu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-11"
+                disabled={isLoading}
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-destructive">
+                {error}
+              </p>
             )}
 
             <p className="text-xs text-muted-foreground">
-              Tu ID será generado automáticamente y guardado localmente
+              Si tu email ya está registrado, iniciarás sesión. Si no, se creará tu cuenta automáticamente.
             </p>
 
             <Button 
               type="submit" 
               className="w-full h-11 text-base"
-              disabled={!name.trim()}
+              disabled={!name.trim() || !email.trim() || isLoading}
             >
-              {isRegistering ? 'Crear Cuenta' : 'Ingresar / Crear ID Temporal'}
-            </Button>
-
-            <Button 
-              type="button"
-              variant="outline"
-              className="w-full h-11 text-base"
-              onClick={() => setIsRegistering(!isRegistering)}
-            >
-              {isRegistering ? 'Volver a Ingreso Rápido' : 'Registrarme'}
+              {isLoading ? 'Procesando...' : 'Ingresar / Registrarme'}
             </Button>
           </form>
         </CardContent>

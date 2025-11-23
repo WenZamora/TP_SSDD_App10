@@ -38,7 +38,19 @@ export interface Expense {
 }
 
 /**
- * Contact - Represents a person who can be part of groups
+ * User - Represents a user in the system with their contacts
+ */
+export interface User {
+  id: string
+  name: string
+  email: string
+  avatar?: string
+  contacts: string[] // Array of user IDs
+  createdAt: number
+}
+
+/**
+ * Contact - Represents a person who can be part of groups (alias for User for backwards compatibility)
  */
 export interface Contact {
   id: string
@@ -49,20 +61,11 @@ export interface Contact {
 }
 
 /**
- * Current User - Represents the logged-in user
- */
-export interface CurrentUser {
-  id: string
-  contactId: string
-}
-
-/**
  * Database - Complete database structure
  */
 export interface Database {
   groups: Group[]
-  contacts: Contact[]
-  currentUser: CurrentUser | null
+  users: User[]
 }
 
 // ============================================================================

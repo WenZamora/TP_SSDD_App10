@@ -1,70 +1,125 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import { Badge } from "@/app/components/ui/badge"
-import { UserPlus, UserMinus, Search, Mail } from 'lucide-react'
+import { UserPlus, UserMinus, Search, Mail, Users } from 'lucide-react'
 import { Avatar, AvatarFallback } from "@/app/components/ui/avatar"
 import { Skeleton } from "@/app/components/ui/skeleton"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/app/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog"
 import { toast } from 'sonner'
-import { useContacts, useCreateContact, useDeleteContact } from '@/app/hooks/useContacts'
-import type { Contact } from '@/app/types'
+import { useContacts, useUserContacts, useCreateContact, useAddContactToUser, useRemoveContactFromUser } from '@/app/hooks/useContacts'
+import type { Contact, User } from '@/app/types'
 
 export function ContactsManagement() {
-  // Use hooks instead of manual state/fetch
-  const { data: contacts = [], isLoading, error } = useContacts()
+  const [currentUser, setCurrentUser] = useState<User | null>(null)
+  
+  useEffect(() => {
+    const storedUser = localStorage.getItem('splitwise_user')
+    if (storedUser) {
+      setCurrentUser(JSON.parse(storedUser))
+    }
+  }, [])
+  
+  // Get current user's contacts
+  const { data: myContacts = [], isLoading: isLoadingMyContacts, error: myContactsError } = useUserContacts(currentUser?.id || null)
+  
+  // Get all users (for adding new contacts)
+  const { data: allUsers = [], isLoading: isLoadingAllUsers } = useContacts()
+  
   const createContact = useCreateContact()
-  const deleteContact = useDeleteContact()
+  const addContactToUser = useAddContactToUser()
+  const removeContactFromUser = useRemoveContactFromUser()
   
   const [searchQuery, setSearchQuery] = useState<string>("")
+  const [searchQueryAdd, setSearchQueryAdd] = useState<string>("")
   const [newContactEmail, setNewContactEmail] = useState<string>("")
+  const [contactToRemove, setContactToRemove] = useState<string | null>(null)
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
 
-  // agregar contacto
-  const handleAddContact = async () => {
+  // Create new user in the system
+  const handleCreateNewUser = async () => {
     if (!newContactEmail.trim()) return
+    if (!currentUser) return
 
     try {
-      await createContact.mutateAsync({
+      const newUser = await createContact.mutateAsync({
         name: newContactEmail.split("@")[0] || "Contacto nuevo",
         email: newContactEmail
       })
       
-      toast.success('Contacto agregado exitosamente')
+      // Automatically add to current user's contacts
+      await addContactToUser.mutateAsync({
+        userId: currentUser.id,
+        contactId: newUser.id
+      })
+      
+      toast.success('Usuario creado y agregado a tus contactos')
       setNewContactEmail("")
+      setIsAddDialogOpen(false)
     } catch (err: any) {
-      toast.error(err.message || "No se pudo crear el contacto")
+      toast.error(err.message || "No se pudo crear el usuario")
     }
   }
 
-  // eliminar contacto 
-  const handleRemoveContact = async (contactId: string) => {
+  // Add existing user as contact
+  const handleAddExistingContact = async (contactId: string) => {
+    if (!currentUser) return
+
+    try {
+      await addContactToUser.mutateAsync({
+        userId: currentUser.id,
+        contactId
+      })
+      
+      toast.success('Contacto agregado exitosamente')
+    } catch (err: any) {
+      toast.error(err.message || "No se pudo agregar el contacto")
+    }
+  }
+
+  // Remove contact from user's list
+  const handleRemoveContact = (contactId: string) => {
     if (!contactId) return
-    if (!confirm('¿Estás seguro de eliminar este contacto?')) return
+    setContactToRemove(contactId)
+  }
+
+  const confirmRemoveContact = async () => {
+    if (!contactToRemove || !currentUser) return
     
     try {
-      await deleteContact.mutateAsync(contactId)
-      toast.success('Contacto eliminado')
+      await removeContactFromUser.mutateAsync({
+        userId: currentUser.id,
+        contactId: contactToRemove
+      })
+      toast.success('Contacto eliminado de tu lista')
+      setContactToRemove(null)
     } catch (err: any) {
-      // Handle 409 error (contact is member of group)
-      if (err.message && err.message.includes('member')) {
-        toast.error('No se puede eliminar: el contacto es miembro de uno o más grupos')
-      } else {
-        toast.error(err.message || "No se pudo eliminar el contacto")
-      }
+      toast.error(err.message || "No se pudo eliminar el contacto")
+      setContactToRemove(null)
     }
   }
 
-  // contactos filtrados por búsqueda
-  const filteredContacts = contacts.filter((contact) =>
+  // Contactos filtrados por búsqueda
+  const filteredMyContacts = myContacts.filter((contact) =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (contact.email || "").toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // Available users to add (not already in contacts and not self)
+  const availableUsers = allUsers.filter((user) => 
+    user.id !== currentUser?.id && 
+    !myContacts.some(c => c.id === user.id) &&
+    (user.name.toLowerCase().includes(searchQueryAdd.toLowerCase()) ||
+     user.email.toLowerCase().includes(searchQueryAdd.toLowerCase()))
+  )
+
   // Loading state
-  if (isLoading) {
+  if (isLoadingMyContacts || !currentUser) {
     return (
       <div className="p-8 space-y-8">
         <div>
@@ -78,7 +133,7 @@ export function ContactsManagement() {
   }
 
   // Error state
-  if (error) {
+  if (myContactsError) {
     return (
       <div className="p-8 space-y-8">
         <div>
@@ -87,7 +142,7 @@ export function ContactsManagement() {
         </div>
         <Alert variant="destructive">
           <AlertDescription>
-            Error al cargar contactos: {error.message}
+            Error al cargar contactos: {myContactsError.message}
           </AlertDescription>
         </Alert>
       </div>
@@ -103,29 +158,17 @@ export function ContactsManagement() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Agregar Nuevo Contacto</CardTitle>
-          <CardDescription>Envía una invitación por email o ID de usuario</CardDescription>
+          <CardTitle>Agregar Contacto</CardTitle>
+          <CardDescription>Agrega usuarios existentes o crea uno nuevo</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-3">
-            <Input
-              placeholder="Email o ID de usuario"
-              value={newContactEmail}
-              onChange={(e) => setNewContactEmail(e.target.value)}
-              className="flex-1 h-11"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAddContact()
-              }}
-            />
-            <Button 
-              onClick={handleAddContact}
-              className="h-11 px-6"
-              disabled={!newContactEmail.trim() || createContact.isPending}
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              {createContact.isPending ? 'Agregando...' : 'Agregar'}
-            </Button>
-          </div>
+          <Button 
+            onClick={() => setIsAddDialogOpen(true)}
+            className="w-full h-11"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Buscar o Crear Contacto
+          </Button>
         </CardContent>
       </Card>
 
@@ -135,10 +178,10 @@ export function ContactsManagement() {
             <div>
               <CardTitle>Mis Contactos</CardTitle>
               <CardDescription>
-                {contacts.length} contacto{contacts.length !== 1 ? 's' : ''} en total
+                {myContacts.length} contacto{myContacts.length !== 1 ? 's' : ''} en total
               </CardDescription>
             </div>
-            <Badge variant="outline">{filteredContacts.length} mostrando</Badge>
+            <Badge variant="outline">{filteredMyContacts.length} mostrando</Badge>
           </div>
           <div className="mt-4">
             <div className="relative">
@@ -153,8 +196,21 @@ export function ContactsManagement() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {filteredContacts.map((contact) => {
+          {filteredMyContacts.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">No tienes contactos aún</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Comienza agregando contactos para compartir gastos
+              </p>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Agregar Contacto
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredMyContacts.map((contact) => {
               const initials = contact.name
                 .split(' ')
                 .map(n => n[0])
@@ -184,20 +240,147 @@ export function ContactsManagement() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleRemoveContact(contact.id)}
-                        disabled={deleteContact.isPending}
+                        disabled={removeContactFromUser.isPending}
                         className="text-destructive hover:bg-destructive/10"
                       >
                         <UserMinus className="h-4 w-4 mr-2" />
-                        {deleteContact.isPending ? 'Eliminando...' : 'Eliminar'}
+                        {removeContactFromUser.isPending ? 'Eliminando...' : 'Eliminar'}
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
               )
             })}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Dialog para agregar contactos */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[600px]">
+          <DialogHeader>
+            <DialogTitle>Agregar Contacto</DialogTitle>
+            <DialogDescription>
+              Selecciona un usuario existente o crea uno nuevo
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Crear nuevo usuario */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Crear Nuevo Usuario</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Email del nuevo usuario"
+                    value={newContactEmail}
+                    onChange={(e) => setNewContactEmail(e.target.value)}
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCreateNewUser()
+                    }}
+                  />
+                  <Button 
+                    onClick={handleCreateNewUser}
+                    disabled={!newContactEmail.trim() || createContact.isPending}
+                  >
+                    {createContact.isPending ? 'Creando...' : 'Crear'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Buscar usuarios existentes */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Usuarios Disponibles</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar usuarios..."
+                    value={searchQueryAdd}
+                    onChange={(e) => setSearchQueryAdd(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {isLoadingAllUsers ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      Cargando usuarios...
+                    </div>
+                  ) : availableUsers.length === 0 ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      No hay usuarios disponibles para agregar
+                    </div>
+                  ) : (
+                    availableUsers.map((user) => {
+                      const initials = user.name
+                        .split(' ')
+                        .map(n => n[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2)
+
+                      return (
+                        <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-primary text-primary-foreground text-sm">
+                                {initials}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{user.name}</p>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddExistingContact(user.id)}
+                            disabled={addContactToUser.isPending}
+                          >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Agregar
+                          </Button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm remove dialog */}
+      <AlertDialog open={!!contactToRemove} onOpenChange={(open) => !open && setContactToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar contacto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              El contacto será eliminado de tu lista, pero el usuario seguirá existiendo en el sistema.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setContactToRemove(null)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmRemoveContact}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

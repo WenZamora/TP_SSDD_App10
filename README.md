@@ -151,7 +151,7 @@ npm install
 # La base de datos se crea automáticamente al iniciar
 # O puedes crearla manualmente:
 mkdir -p data
-echo '{"groups":[],"contacts":[],"currentUser":null}' > src/app/data/db.json
+echo '{"groups":[],"users":[]}' > src/app/data/db.json
 ```
 
 4. **Iniciar servidor de desarrollo**

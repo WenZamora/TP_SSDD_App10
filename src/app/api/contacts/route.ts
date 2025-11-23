@@ -1,14 +1,24 @@
 import { NextResponse } from "next/server";
-import { getAllContacts, addContact } from "@/app/lib/contacts";
+import { getAllContacts, addContact, getUserContacts, addContactToUser } from "@/app/lib/contacts";
 
 /**
- * GET /api/contacts
- * Returns all contacts
+ * GET /api/contacts?userId=xxx
+ * Returns all contacts for a specific user, or all users if no userId provided
  */
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const contacts = await getAllContacts();
-    return NextResponse.json(contacts, { status: 200 });
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    
+    if (userId) {
+      // Get contacts for specific user
+      const contacts = await getUserContacts(userId);
+      return NextResponse.json(contacts, { status: 200 });
+    } else {
+      // Get all users (for backwards compatibility and admin views)
+      const contacts = await getAllContacts();
+      return NextResponse.json(contacts, { status: 200 });
+    }
   } catch (error) {
     console.error("Error retrieving contacts:", error);
     return NextResponse.json(
@@ -20,12 +30,41 @@ export async function GET() {
 
 /**
  * POST /api/contacts
- * Creates a new contact
- * Body: { name: string, email: string }
+ * Creates a new user OR adds an existing user as contact
+ * Body: { name: string, email: string } - creates new user
+ * Body: { userId: string, contactId: string } - adds contact to user
  */
 export async function POST(request: Request) {
   try {
-    const { name, email } = await request.json();
+    const body = await request.json();
+
+    // Check if this is adding a contact to a user
+    if (body.userId && body.contactId) {
+      const { userId, contactId } = body;
+      
+      if (!userId || !contactId) {
+        return NextResponse.json(
+          { error: "userId y contactId son requeridos" },
+          { status: 400 }
+        );
+      }
+      
+      try {
+        const updatedUser = await addContactToUser(userId, contactId);
+        return NextResponse.json(updatedUser, { status: 200 });
+      } catch (error) {
+        if (error instanceof Error) {
+          return NextResponse.json(
+            { error: error.message },
+            { status: 400 }
+          );
+        }
+        throw error;
+      }
+    }
+    
+    // Otherwise, create a new user
+    const { name, email } = body;
 
     // Validation
     if (!name || typeof name !== "string" || name.trim() === "") {

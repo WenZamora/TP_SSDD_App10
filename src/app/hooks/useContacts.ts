@@ -10,13 +10,26 @@ import { contactsService } from '@/app/services/contacts.service'
 import type { Contact, CreateContactDto, UpdateContactDto } from '@/app/types'
 
 /**
- * Hook to fetch all contacts
+ * Hook to fetch all contacts (all users in the system)
  * @returns Query with contacts data
  */
 export function useContacts() {
   return useQuery<Contact[], Error>({
     queryKey: ['contacts'],
     queryFn: contactsService.getAllContacts,
+  })
+}
+
+/**
+ * Hook to fetch contacts for a specific user
+ * @param userId - User ID to fetch contacts for
+ * @returns Query with user's contacts data
+ */
+export function useUserContacts(userId: string | null) {
+  return useQuery<Contact[], Error>({
+    queryKey: ['contacts', 'user', userId],
+    queryFn: () => contactsService.getUserContacts(userId!),
+    enabled: !!userId, // Only run query if userId is truthy
   })
 }
 
@@ -71,7 +84,7 @@ export function useUpdateContact() {
 }
 
 /**
- * Hook to delete a contact
+ * Hook to delete a contact (admin operation - deletes user from system)
  * Automatically invalidates contacts list on success
  * Note: Will fail if contact is a member of any group
  * @returns Mutation for deleting a contact
@@ -84,6 +97,42 @@ export function useDeleteContact() {
     onSuccess: () => {
       // Invalidate contacts list
       queryClient.invalidateQueries({ queryKey: ['contacts'] })
+    },
+  })
+}
+
+/**
+ * Hook to add an existing user as a contact to another user
+ * Automatically invalidates user's contacts on success
+ * @returns Mutation for adding a contact to a user
+ */
+export function useAddContactToUser() {
+  const queryClient = useQueryClient()
+  
+  return useMutation<void, Error, { userId: string; contactId: string }>({
+    mutationFn: ({ userId, contactId }) => contactsService.addContactToUser(userId, contactId),
+    onSuccess: (_, variables) => {
+      // Refetch user's contacts immediately
+      queryClient.refetchQueries({ queryKey: ['contacts', 'user', variables.userId] })
+      queryClient.refetchQueries({ queryKey: ['contacts'] })
+    },
+  })
+}
+
+/**
+ * Hook to remove a contact from a user's contact list
+ * Automatically refetches user's contacts on success
+ * @returns Mutation for removing a contact from a user
+ */
+export function useRemoveContactFromUser() {
+  const queryClient = useQueryClient()
+  
+  return useMutation<void, Error, { userId: string; contactId: string }>({
+    mutationFn: ({ userId, contactId }) => contactsService.removeContactFromUser(userId, contactId),
+    onSuccess: (_, variables) => {
+      // Force immediate refetch of user's contacts
+      queryClient.refetchQueries({ queryKey: ['contacts', 'user', variables.userId] })
+      queryClient.refetchQueries({ queryKey: ['contacts'] })
     },
   })
 }

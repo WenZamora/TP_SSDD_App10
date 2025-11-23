@@ -34,11 +34,21 @@ async function handleErrorResponse(response: Response): Promise<never> {
  */
 export const contactsService = {
   /**
-   * Get all contacts
+   * Get all contacts (all users in the system)
    * GET /api/contacts
    */
   getAllContacts: async (): Promise<Contact[]> => {
     const res = await fetch("/api/contacts", { cache: "no-store" })
+    if (!res.ok) await handleErrorResponse(res)
+    return res.json()
+  },
+  
+  /**
+   * Get contacts for a specific user
+   * GET /api/contacts?userId=xxx
+   */
+  getUserContacts: async (userId: string): Promise<Contact[]> => {
+    const res = await fetch(`/api/contacts?userId=${userId}`, { cache: "no-store" })
     if (!res.ok) await handleErrorResponse(res)
     return res.json()
   },
@@ -54,7 +64,7 @@ export const contactsService = {
   },
   
   /**
-   * Create a new contact
+   * Create a new contact (new user in the system)
    * POST /api/contacts
    */
   createContact: async (data: CreateContactDto): Promise<Contact> => {
@@ -65,6 +75,19 @@ export const contactsService = {
     })
     if (!res.ok) await handleErrorResponse(res)
     return res.json()
+  },
+  
+  /**
+   * Add an existing user as a contact to another user
+   * POST /api/contacts
+   */
+  addContactToUser: async (userId: string, contactId: string): Promise<void> => {
+    const res = await fetch("/api/contacts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, contactId }),
+    })
+    if (!res.ok) await handleErrorResponse(res)
   },
   
   /**
@@ -82,12 +105,21 @@ export const contactsService = {
   },
   
   /**
-   * Delete a contact
+   * Delete a contact (delete user from system - admin operation)
    * DELETE /api/contacts/[id]
    * Note: Will fail with 409 if contact is a member of any group
    */
   deleteContact: async (id: string): Promise<void> => {
     const res = await fetch(`/api/contacts/${id}`, { method: "DELETE" })
+    if (!res.ok) await handleErrorResponse(res)
+  },
+  
+  /**
+   * Remove a contact from a user's contact list
+   * DELETE /api/contacts/[id]?userId=xxx
+   */
+  removeContactFromUser: async (userId: string, contactId: string): Promise<void> => {
+    const res = await fetch(`/api/contacts/${contactId}?userId=${userId}`, { method: "DELETE" })
     if (!res.ok) await handleErrorResponse(res)
   },
 }

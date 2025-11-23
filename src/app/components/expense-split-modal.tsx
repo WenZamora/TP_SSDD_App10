@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/app/components/ui/dialog"
 import { Card, CardContent } from "@/app/components/ui/card"
 import { Button } from "@/app/components/ui/button"
@@ -11,35 +11,41 @@ import { Badge } from "@/app/components/ui/badge"
 import { Checkbox } from "@/app/components/ui/checkbox"
 import { Users, Calendar, DollarSign } from 'lucide-react'
 import { cn } from "@/app/lib/utils"
+import { useGroup } from '@/app/hooks/useGroups'
+import { useContacts } from '@/app/hooks/useContacts'
+import type { Expense } from '@/app/types'
 
 interface ExpenseSplitModalProps {
   isOpen: boolean
   onClose: () => void
-  expense: {
-    id: string
-    description: string
-    amount: number
-    currency: string
-    payers: string[]
-    date: string
-    participants: number
-  } | null
+  expense: Expense | null
+  groupId: string | null
   baseCurrency: string
 }
 
-// Mock participants - in real app this would come from the activity's participant list
-const mockParticipants = [
-  { id: '1', name: 'Juan' },
-  { id: '2', name: 'María' },
-  { id: '3', name: 'Pedro' },
-  { id: '4', name: 'Ana' },
-  { id: '5', name: 'Carlos' },
-]
-
-export function ExpenseSplitModal({ isOpen, onClose, expense, baseCurrency }: ExpenseSplitModalProps) {
+export function ExpenseSplitModal({ isOpen, onClose, expense, groupId, baseCurrency }: ExpenseSplitModalProps) {
+  const { data: group } = useGroup(groupId || '')
+  const { data: allContacts = [] } = useContacts()
+  
   const [splitType, setSplitType] = useState<'equal' | 'custom'>('equal')
   const [customAmounts, setCustomAmounts] = useState<Record<string, string>>({})
   const [hasCustomAmount, setHasCustomAmount] = useState<Record<string, boolean>>({})
+
+  // Get participants for this expense
+  const participants = useMemo(() => {
+    if (!expense || !allContacts.length) return []
+    return expense.participants.map(participantId => {
+      const contact = allContacts.find(c => c.id === participantId)
+      return contact ? { id: contact.id, name: contact.name } : null
+    }).filter(Boolean) as Array<{ id: string; name: string }>
+  }, [expense, allContacts])
+  
+  // Get payer name
+  const payerName = useMemo(() => {
+    if (!expense) return ''
+    const payerContact = allContacts.find(c => c.id === expense.payer)
+    return payerContact?.name || 'Desconocido'
+  }, [expense, allContacts])
 
   if (!expense) return null
 
@@ -60,11 +66,10 @@ export function ExpenseSplitModal({ isOpen, onClose, expense, baseCurrency }: Ex
   }
 
   const calculateEqualSplit = () => {
-    return (expense.amount / expense.participants).toFixed(2)
+    return (expense.convertedAmount / participants.length).toFixed(2)
   }
 
   const calculateTotalCustom = () => {
-    const participants = mockParticipants.slice(0, expense.participants)
     let totalCustom = 0
     
     participants.forEach(p => {
@@ -77,14 +82,13 @@ export function ExpenseSplitModal({ isOpen, onClose, expense, baseCurrency }: Ex
   }
 
   const calculateDynamicEqualSplit = () => {
-    const participants = mockParticipants.slice(0, expense.participants)
     const customParticipantsCount = Object.values(hasCustomAmount).filter(Boolean).length
     const equalParticipantsCount = participants.length - customParticipantsCount
     
     if (equalParticipantsCount === 0) return 0
     
     const totalCustomAmount = calculateTotalCustom()
-    const remainingAmount = expense.amount - totalCustomAmount
+    const remainingAmount = expense.convertedAmount - totalCustomAmount
     
     return remainingAmount / equalParticipantsCount
   }
@@ -92,7 +96,6 @@ export function ExpenseSplitModal({ isOpen, onClose, expense, baseCurrency }: Ex
   const isValidSplit = () => {
     if (splitType === 'equal') return true
     
-    const participants = mockParticipants.slice(0, expense.participants)
     let total = 0
     
     participants.forEach(p => {
@@ -103,7 +106,7 @@ export function ExpenseSplitModal({ isOpen, onClose, expense, baseCurrency }: Ex
       }
     })
     
-    return Math.abs(total - expense.amount) < 0.01
+    return Math.abs(total - expense.convertedAmount) < 0.01
   }
 
   const handleSave = () => {
@@ -133,19 +136,17 @@ export function ExpenseSplitModal({ isOpen, onClose, expense, baseCurrency }: Ex
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      <span>{expense.participants} participantes</span>
+                      <span>{participants.length} participantes</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-sm text-muted-foreground">Pagó:</span>
-                    {expense.payers.map((payer, index) => (
-                      <Badge key={index} variant="secondary">{payer}</Badge>
-                    ))}
+                    <Badge variant="secondary">{payerName}</Badge>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-foreground">
-                    {expense.amount.toFixed(2)}
+                    {expense.convertedAmount.toFixed(2)}
                   </div>
                   <Badge variant="outline" className="mt-1">{expense.currency}</Badge>
                 </div>
@@ -188,7 +189,7 @@ export function ExpenseSplitModal({ isOpen, onClose, expense, baseCurrency }: Ex
               </p>
             )}
             <div className="space-y-2">
-              {mockParticipants.slice(0, expense.participants).map((participant) => {
+              {participants.map((participant) => {
                 const equalAmount = calculateEqualSplit()
                 const dynamicEqualAmount = calculateDynamicEqualSplit()
                 const customAmount = customAmounts[participant.id] || ''
@@ -284,7 +285,7 @@ export function ExpenseSplitModal({ isOpen, onClose, expense, baseCurrency }: Ex
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {Object.values(hasCustomAmount).filter(Boolean).length} personalizados<br />
-                      {expense.participants - Object.values(hasCustomAmount).filter(Boolean).length} equitativos
+                      {participants.length - Object.values(hasCustomAmount).filter(Boolean).length} equitativos
                     </div>
                   </div>
                 </div>

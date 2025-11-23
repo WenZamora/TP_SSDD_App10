@@ -5,6 +5,7 @@ import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import { Label } from "@/app/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/app/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/app/components/ui/alert-dialog"
 import { Users, Trash2, Plus, UserPlus, Search } from 'lucide-react'
 import { Badge } from "@/app/components/ui/badge"
 import { Checkbox } from "@/app/components/ui/checkbox"
@@ -31,6 +32,7 @@ export function GroupsManagement() {
   const [isAddingMembers, setIsAddingMembers] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedMembers, setSelectedMembers] = useState<string[]>([])
+  const [groupToDelete, setGroupToDelete] = useState<string | null>(null)
 
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) return
@@ -51,14 +53,20 @@ export function GroupsManagement() {
   }
 
 
-  const handleDeleteGroup = async (groupId: string) => {
-    if (!confirm('¿Estás seguro de eliminar este grupo?')) return
+  const handleDeleteGroup = (groupId: string) => {
+    setGroupToDelete(groupId)
+  }
+
+  const confirmDeleteGroup = async () => {
+    if (!groupToDelete) return
     
     try {
-      await deleteGroup.mutateAsync(groupId)
+      await deleteGroup.mutateAsync(groupToDelete)
       toast.success('Grupo eliminado')
+      setGroupToDelete(null)
     } catch (error: any) {
       toast.error(error.message || 'No se pudo eliminar el grupo')
+      setGroupToDelete(null)
     }
   }
 
@@ -357,6 +365,28 @@ export function GroupsManagement() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!groupToDelete} onOpenChange={(open) => !open && setGroupToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro de eliminar este grupo?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. El grupo y todos sus datos asociados serán eliminados permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setGroupToDelete(null)}>
+              No
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteGroup}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sí, eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

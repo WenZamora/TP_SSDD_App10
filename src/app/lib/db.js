@@ -7,14 +7,12 @@ const TMP_PATH = path.join(process.cwd(), "src", "app", "data", "db.json.tmp");
 
 /**
  * Validates the database structure
- * Expected schema: { groups: [], contacts: [], currentUser?: {} }
+ * Expected schema: { groups: [], users: [] }
  */
 function validateDBShape(db) {
   if (!db || typeof db !== "object") return false;
   if (!Array.isArray(db.groups)) return false;
-  if (!Array.isArray(db.contacts)) return false;
-  // currentUser is optional
-  if (db.currentUser !== undefined && typeof db.currentUser !== "object") return false;
+  if (!Array.isArray(db.users)) return false;
   return true;
 }
 
@@ -34,8 +32,7 @@ export async function ensureDBExists() {
   } catch (err) { //no existe -> se crea
     const initial = {
       groups: [],
-      contacts: [],
-      currentUser: null
+      users: []
     };
     await fs.writeFile(DB_PATH, JSON.stringify(initial, null, 2), "utf8");
   }
@@ -43,7 +40,7 @@ export async function ensureDBExists() {
 
 /**
  * Reads the entire database
- * @returns {Promise<Object>} Database object with groups, contacts, and currentUser
+ * @returns {Promise<Object>} Database object with groups and users
  */
 export async function readDB() {
   await ensureDBExists();
@@ -53,7 +50,7 @@ export async function readDB() {
     return JSON.parse(txt); //convierte a objeto
 
   } catch (err) {// si está corrupto, se reinicia o se puede cambiar para que lance un error 
-    const initial = { groups: [], contacts: [], currentUser: null };
+    const initial = { groups: [], users: [] };
     await fs.writeFile(DB_PATH, JSON.stringify(initial, null, 2), "utf8");
     return initial;
   }

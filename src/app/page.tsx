@@ -4,64 +4,61 @@ import { useState, useEffect } from 'react'
 import { Sidebar } from "@/app/components/sidebar"
 import { Header } from "@/app/components/header"
 import { Dashboard } from "@/app/components/dashboard"
-import { ActivityDetail } from "@/app/components/activity-detail"
 import { AddExpenseModal } from "@/app/components/add-expense-modal"
 import { LoginModal } from "@/app/components/login-modal"
 import { GroupsManagement } from "@/app/components/groups-management"
-import { CreateActivityModal } from "@/app/components/create-activity-modal"
-import { RatingModal } from "@/app/components/rating-modal"
-import { ActivityHistory } from "@/app/components/activity-history"
 import { ContactsManagement } from "@/app/components/contacts-management"
 import { ProfilePage } from "@/app/components/profile-page"
-import { FinishedActivityDetailModal } from "@/app/components/finished-activity-detail-modal"
+import { usersService } from "@/app/services/users.service"
+import type { User } from "@/app/types"
 
 export default function Page() {
-  const [user, setUser] = useState<{ id: string; name: string } | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   
-  const [currentView, setCurrentView] = useState<'dashboard' | 'activity' | 'groups' | 'history' | 'contacts' | 'profile'>('dashboard')
-  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null)
+  const [currentView, setCurrentView] = useState<'dashboard' | 'groups' | 'contacts' | 'profile'>('dashboard')
   const [baseCurrency, setBaseCurrency] = useState('USD')
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
-  const [isCreateActivityOpen, setIsCreateActivityOpen] = useState(false)
-  const [isRatingOpen, setIsRatingOpen] = useState(false)
-  const [currentActivityName, setCurrentActivityName] = useState('')
-  const [isFinishedActivityModalOpen, setIsFinishedActivityModalOpen] = useState(false)
-  const [selectedFinishedActivityId, setSelectedFinishedActivityId] = useState<string | null>(null)
 
   useEffect(() => {
     const storedUser = localStorage.getItem('splitwise_user')
     if (storedUser) {
-      setUser(JSON.parse(storedUser))
+      try {
+        const userData = JSON.parse(storedUser)
+        // Verify user still exists in database
+        if (userData.id && userData.email) {
+          usersService.getUserByEmail(userData.email).then((dbUser) => {
+            if (dbUser) {
+              setUser(dbUser)
+              localStorage.setItem('splitwise_user', JSON.stringify(dbUser))
+            } else {
+              // User no longer exists in database
+              localStorage.removeItem('splitwise_user')
+              setUser(null)
+            }
+            setIsLoading(false)
+          }).catch(() => {
+            setIsLoading(false)
+          })
+        } else {
+          // Old format user, clear it
+          localStorage.removeItem('splitwise_user')
+          setIsLoading(false)
+        }
+      } catch {
+        localStorage.removeItem('splitwise_user')
+        setIsLoading(false)
+      }
+    } else {
+      setIsLoading(false)
     }
   }, [])
 
-  const handleActivitySelect = (activityId: string) => {
-    setSelectedActivityId(activityId)
-    setCurrentView('activity')
-  }
-
-  const handleBackToDashboard = () => {
-    setCurrentView('dashboard')
-    setSelectedActivityId(null)
-  }
-
-  const handleCreateActivity = () => {
-    setIsCreateActivityOpen(true)
-  }
-
-  const handleFinishActivity = () => {
-    setCurrentActivityName('Viaje a Bariloche')
-    setIsRatingOpen(true)
-  }
-
-  const handleLogin = (name: string) => {
-    const newUser = {
-      id: `user_${Date.now()}`,
-      name
-    }
-    localStorage.setItem('splitwise_user', JSON.stringify(newUser))
-    setUser(newUser)
+  const handleLogin = async (name: string, email: string) => {
+    const loggedInUser = await usersService.loginOrCreateUser(name, email)
+    localStorage.setItem('splitwise_user', JSON.stringify(loggedInUser))
+    setUser(loggedInUser)
   }
 
   const handleLogout = () => {
@@ -77,9 +74,15 @@ export default function Page() {
     }
   }
 
-  const handleFinishedActivitySelect = (activityId: string) => {
-    setSelectedFinishedActivityId(activityId)
-    setIsFinishedActivityModalOpen(true)
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!user) {
@@ -93,9 +96,6 @@ export default function Page() {
         onViewChange={setCurrentView}
         baseCurrency={baseCurrency}
         onCurrencyChange={setBaseCurrency}
-        onAddExpense={() => setIsAddExpenseOpen(true)}
-        onCreateActivity={handleCreateActivity}
-        onBackToDashboard={handleBackToDashboard}
         isOpen={isSidebarOpen}
       />
       
@@ -110,18 +110,9 @@ export default function Page() {
         
         <main className="flex-1 overflow-y-auto">
           {currentView === 'dashboard' ? (
-            <Dashboard onActivitySelect={handleActivitySelect} baseCurrency={baseCurrency} />
-          ) : currentView === 'activity' ? (
-            <ActivityDetail 
-              activityId={selectedActivityId} 
-              baseCurrency={baseCurrency}
-              onAddExpense={() => setIsAddExpenseOpen(true)}
-              onFinishActivity={handleFinishActivity}
-            />
+            <Dashboard baseCurrency={baseCurrency} />
           ) : currentView === 'groups' ? (
             <GroupsManagement baseCurrency={baseCurrency} />
-          ) : currentView === 'history' ? (
-            <ActivityHistory onActivitySelect={handleFinishedActivitySelect} baseCurrency={baseCurrency} />
           ) : currentView === 'contacts' ? (
             <ContactsManagement />
           ) : currentView === 'profile' ? (
@@ -133,27 +124,6 @@ export default function Page() {
       <AddExpenseModal 
         open={isAddExpenseOpen}
         onOpenChange={setIsAddExpenseOpen}
-        baseCurrency={baseCurrency}
-      />
-
-      <CreateActivityModal
-        open={isCreateActivityOpen}
-        onOpenChange={setIsCreateActivityOpen}
-      />
-
-      <RatingModal
-        open={isRatingOpen}
-        onOpenChange={setIsRatingOpen}
-        activityName={currentActivityName}
-      />
-
-      <FinishedActivityDetailModal
-        isOpen={isFinishedActivityModalOpen}
-        onClose={() => {
-          setIsFinishedActivityModalOpen(false)
-          setSelectedFinishedActivityId(null)
-        }}
-        activityId={selectedFinishedActivityId}
         baseCurrency={baseCurrency}
       />
     </div>

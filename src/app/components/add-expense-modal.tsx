@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/app/components/ui/dialog"
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
@@ -9,27 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/app/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/app/components/ui/radio-group"
 import { Plus, X } from 'lucide-react'
+import { useGroup } from '@/app/hooks/useGroups'
+import { useContacts } from '@/app/hooks/useContacts'
 
 interface AddExpenseModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  groupId: string | null
   baseCurrency: string
 }
-
-const mockMembers = [
-  { id: '1', name: 'Juan', initials: 'JU' },
-  { id: '2', name: 'María', initials: 'MA' },
-  { id: '3', name: 'Pedro', initials: 'PE' },
-  { id: '4', name: 'Ana', initials: 'AN' },
-  { id: '5', name: 'Carlos', initials: 'CA' },
-]
-
-const mockActivities = [
-  { id: '1', name: 'Viaje a Bariloche' },
-  { id: '2', name: 'Cena de Cumpleaños Ana' },
-  { id: '3', name: 'Alquiler Departamento' },
-  { id: '4', name: 'Proyecto Final Universidad' },
-]
 
 interface Payer {
   id: string
@@ -38,19 +26,41 @@ interface Payer {
   currency: string
 }
 
-export function AddExpenseModal({ open, onOpenChange, baseCurrency }: AddExpenseModalProps) {
+export function AddExpenseModal({ open, onOpenChange, groupId, baseCurrency }: AddExpenseModalProps) {
+  const { data: group } = useGroup(groupId || '')
+  const { data: allContacts = [] } = useContacts()
+  
   const [description, setDescription] = useState('')
   const [totalAmount, setTotalAmount] = useState('')
-  const [activity, setActivity] = useState('')
   
   const [payers, setPayers] = useState<Payer[]>([
     { id: '1', memberId: '', amount: '', currency: baseCurrency }
   ])
   
-  const [selectedParticipants, setSelectedParticipants] = useState<string[]>(mockMembers.map(m => m.id))
+  // Get members from the group
+  const members = useMemo(() => {
+    if (!group || !allContacts.length) return []
+    return group.members.map(memberId => {
+      const contact = allContacts.find(c => c.id === memberId)
+      return contact ? {
+        id: contact.id,
+        name: contact.name,
+        initials: contact.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+      } : null
+    }).filter(Boolean) as Array<{ id: string; name: string; initials: string }>
+  }, [group, allContacts])
+  
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>([])
   
   const [splitType, setSplitType] = useState<'equal' | 'custom'>('equal')
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({})
+  
+  // Initialize selected participants when members change
+  useState(() => {
+    if (members.length > 0 && selectedParticipants.length === 0) {
+      setSelectedParticipants(members.map(m => m.id))
+    }
+  })
 
   const addPayer = () => {
     setPayers([...payers, { 
@@ -72,10 +82,10 @@ export function AddExpenseModal({ open, onOpenChange, baseCurrency }: AddExpense
   }
 
   const handleSelectAll = () => {
-    if (selectedParticipants.length === mockMembers.length) {
+    if (selectedParticipants.length === members.length) {
       setSelectedParticipants([])
     } else {
-      setSelectedParticipants(mockMembers.map(m => m.id))
+      setSelectedParticipants(members.map(m => m.id))
     }
   }
 
@@ -94,10 +104,12 @@ export function AddExpenseModal({ open, onOpenChange, baseCurrency }: AddExpense
 
   const handleSubmit = () => {
     // TODO: Implement expense submission logic
-    // Data available: description, totalAmount, payers, activity,
-    // selectedParticipants, splitType, customSplits
+    // Data available: description, totalAmount, payers,
+    // selectedParticipants, splitType, customSplits, groupId
     onOpenChange(false)
   }
+  
+  if (!group) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -133,23 +145,6 @@ export function AddExpenseModal({ open, onOpenChange, baseCurrency }: AddExpense
             />
           </div>
 
-          {/* Actividad */}
-          <div className="space-y-2">
-            <Label htmlFor="activity">Actividad/Salida</Label>
-            <Select value={activity} onValueChange={setActivity}>
-              <SelectTrigger id="activity">
-                <SelectValue placeholder="Selecciona la actividad" />
-              </SelectTrigger>
-              <SelectContent>
-                {mockActivities.map((act) => (
-                  <SelectItem key={act.id} value={act.id}>
-                    {act.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>Pagador(es)</Label>
@@ -175,7 +170,7 @@ export function AddExpenseModal({ open, onOpenChange, baseCurrency }: AddExpense
                         <SelectValue placeholder="Selecciona quién pagó" />
                       </SelectTrigger>
                       <SelectContent>
-                        {mockMembers.map((member) => (
+                        {members.map((member) => (
                           <SelectItem key={member.id} value={member.id}>
                             {member.name}
                           </SelectItem>
@@ -233,11 +228,11 @@ export function AddExpenseModal({ open, onOpenChange, baseCurrency }: AddExpense
                 size="sm"
                 onClick={handleSelectAll}
               >
-                {selectedParticipants.length === mockMembers.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                {selectedParticipants.length === members.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
               </Button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {mockMembers.map((member) => (
+              {members.map((member) => (
                 <div key={member.id} className="flex items-center space-x-3 rounded-lg border border-border p-3 hover:bg-accent/50 transition-colors">
                   <Checkbox 
                     id={member.id}
@@ -289,7 +284,7 @@ export function AddExpenseModal({ open, onOpenChange, baseCurrency }: AddExpense
                   <Label className="text-xs text-muted-foreground">Ingresa el monto para cada participante:</Label>
                   <div className="grid grid-cols-2 gap-2">
                     {selectedParticipants.map((participantId) => {
-                      const member = mockMembers.find(m => m.id === participantId)
+                      const member = members.find(m => m.id === participantId)
                       return (
                         <div key={participantId} className="flex items-center gap-2">
                           <Label className="text-sm min-w-[80px]">{member?.name}:</Label>

@@ -2,17 +2,14 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Badge } from "@/app/components/ui/badge"
-import { Button } from "@/app/components/ui/button"
-import { Input } from "@/app/components/ui/input"
 import { Skeleton } from "@/app/components/ui/skeleton"
-import { ArrowUpRight, ArrowDownRight, Users, TrendingUp, Calendar, PieChart, Search } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight, Users, TrendingUp, Calendar, PieChart } from 'lucide-react'
 import { cn } from "@/app/lib/utils"
 import { useState, useMemo } from 'react'
 import { BalanceHistoryModal } from './balance-history-modal'
 import { useGroups } from '@/app/hooks/useGroups'
 
 interface DashboardProps {
-  onActivitySelect: (activityId: string) => void
   baseCurrency: string
 }
 
@@ -49,8 +46,7 @@ function formatDateRange(createdAt: number, updatedAt: number): string {
   return `${monthNames[start.getMonth()]} ${start.getFullYear()}`
 }
 
-export function Dashboard({ onActivitySelect, baseCurrency }: DashboardProps) {
-  const [activityCode, setActivityCode] = useState('')
+export function Dashboard({ baseCurrency }: DashboardProps) {
   const [showBalanceHistory, setShowBalanceHistory] = useState(false)
   const { data: groups = [], isLoading } = useGroups()
   
@@ -61,49 +57,12 @@ export function Dashboard({ onActivitySelect, baseCurrency }: DashboardProps) {
     return 0
   }, [groups])
 
-  const handleJoinActivity = () => {
-    if (activityCode.trim()) {
-      // TODO: Implement join activity by code logic
-      setActivityCode('')
-    }
-  }
-
   return (
     <div className="p-8 space-y-8">
       <div>
         <h2 className="text-3xl font-bold tracking-tight text-foreground">Inicio</h2>
-        <p className="text-muted-foreground mt-1">Resumen de tus actividades y gastos compartidos</p>
+        <p className="text-muted-foreground mt-1">Resumen de tus grupos y gastos compartidos</p>
       </div>
-
-      <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-primary" />
-            <CardTitle>Acceso Rápido</CardTitle>
-          </div>
-          <CardDescription>Únete a una actividad existente usando su código</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-3">
-            <Input
-              placeholder="Ej: ACT-12345-XYZ"
-              value={activityCode}
-              onChange={(e) => setActivityCode(e.target.value)}
-              className="flex-1 h-11"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleJoinActivity()
-              }}
-            />
-            <Button 
-              onClick={handleJoinActivity}
-              className="h-11 px-6"
-              disabled={!activityCode.trim()}
-            >
-              Unirse a Actividad
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Balance Total */}
       <Card className="border-2 bg-gradient-to-br from-primary/5 to-secondary/5">
@@ -211,8 +170,7 @@ export function Dashboard({ onActivitySelect, baseCurrency }: DashboardProps) {
               return (
                 <Card 
                   key={group.id}
-                  className="cursor-pointer hover:shadow-md transition-all hover:border-primary/50 overflow-hidden"
-                  onClick={() => onActivitySelect(group.id)}
+                  className="overflow-hidden"
                 >
                   <div className="aspect-[2/1] w-full overflow-hidden bg-muted">
                     <img 

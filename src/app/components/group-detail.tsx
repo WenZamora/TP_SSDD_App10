@@ -1,52 +1,58 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/tabs"
 import { Badge } from "@/app/components/ui/badge"
+import { Skeleton } from "@/app/components/ui/skeleton"
 import { ArrowRight, Calendar, User, BarChart3, PieChart } from 'lucide-react'
 import { cn } from "@/app/lib/utils"
+import { useGroup } from '@/app/hooks/useGroups'
+import { useContacts } from '@/app/hooks/useContacts'
+import { useGroupBalance } from '@/app/hooks/useBalance'
+import { useExpensesByPerson, useExpensesByCategory } from '@/app/hooks/useStatistics'
 
 interface GroupDetailProps {
   groupId: string | null
   baseCurrency: string
 }
 
-// Mock data
-const mockExpenses = [
-  { id: '1', description: 'Cena en restaurante', amount: 150.00, currency: 'USD', payer: 'Juan', date: '2025-11-10', participants: 5 },
-  { id: '2', description: 'Uber al aeropuerto', amount: 45.00, currency: 'USD', payer: 'María', date: '2025-11-09', participants: 3 },
-  { id: '3', description: 'Supermercado', amount: 220.00, currency: 'USD', payer: 'Pedro', date: '2025-11-08', participants: 5 },
-  { id: '4', description: 'Hotel - Noche 1', amount: 180.00, currency: 'USD', payer: 'Ana', date: '2025-11-07', participants: 4 },
-]
-
-const mockBalances = [
-  { from: 'Juan', to: 'María', amount: 75.00 },
-  { from: 'Pedro', to: 'María', amount: 120.50 },
-  { from: 'Ana', to: 'Juan', amount: 45.00 },
-]
-
-const mockStats = {
-  totalByPerson: [
-    { name: 'Juan', amount: 320.00 },
-    { name: 'María', amount: 245.00 },
-    { name: 'Pedro', amount: 380.00 },
-    { name: 'Ana', amount: 210.00 },
-  ],
-  byCategory: [
-    { category: 'Comida', amount: 450.00, percentage: 38 },
-    { category: 'Transporte', amount: 280.00, percentage: 24 },
-    { category: 'Alojamiento', amount: 350.00, percentage: 30 },
-    { category: 'Otros', amount: 95.00, percentage: 8 },
-  ]
-}
-
 export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
+  const { data: group, isLoading: groupLoading } = useGroup(groupId || '')
+  const { data: allContacts = [] } = useContacts()
+  const { data: balanceData } = useGroupBalance(groupId || '')
+  const { data: expensesByPerson = [] } = useExpensesByPerson(groupId || '')
+  const { data: expensesByCategory = [] } = useExpensesByCategory(groupId || '')
+  
+  // Get contact name by ID
+  const getContactName = (contactId: string) => {
+    const contact = allContacts.find(c => c.id === contactId)
+    return contact?.name || 'Desconocido'
+  }
+  
+  if (groupLoading) {
+    return (
+      <div className="p-8 space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    )
+  }
+  
+  if (!group) {
+    return (
+      <div className="p-8">
+        <p className="text-muted-foreground">Grupo no encontrado</p>
+      </div>
+    )
+  }
+  
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">Viaje a Bariloche</h2>
-        <p className="text-muted-foreground mt-1">5 miembros • Activo</p>
+        <h2 className="text-3xl font-bold tracking-tight text-foreground">{group.name}</h2>
+        <p className="text-muted-foreground mt-1">{group.members.length} miembros • {group.description || 'Sin descripción'}</p>
       </div>
 
       <Tabs defaultValue="expenses" className="w-full">
@@ -59,45 +65,58 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
         <TabsContent value="expenses" className="space-y-4 mt-6">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Lista de Gastos</h3>
-            <Badge variant="outline">{mockExpenses.length} gastos</Badge>
+            <Badge variant="outline">{group.expenses.length} gastos</Badge>
           </div>
           
           <div className="space-y-3">
-            {mockExpenses.map((expense) => (
-              <Card key={expense.id} className="hover:shadow-sm transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-3">
-                        <h4 className="font-semibold text-foreground">{expense.description}</h4>
-                        <Badge variant="secondary" className="text-xs">
-                          {expense.currency}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1.5">
-                          <User className="h-4 w-4" />
-                          <span>Pagó: {expense.payer}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="h-4 w-4" />
-                          <span>{new Date(expense.date).toLocaleDateString('es-ES')}</span>
-                        </div>
-                        <span>{expense.participants} participantes</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xl font-bold text-foreground">
-                        {expense.amount.toFixed(2)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {(expense.amount / expense.participants).toFixed(2)} c/u
-                      </div>
-                    </div>
-                  </div>
+            {group.expenses.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">No hay gastos registrados todavía</p>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              group.expenses.map((expense) => (
+                <Card key={expense.id} className="hover:shadow-sm transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex items-center gap-3">
+                          <h4 className="font-semibold text-foreground">{expense.description}</h4>
+                          <Badge variant="secondary" className="text-xs">
+                            {expense.currency}
+                          </Badge>
+                          {expense.category && (
+                            <Badge variant="outline" className="text-xs">
+                              {expense.category}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <User className="h-4 w-4" />
+                            <span>Pagó: {getContactName(expense.payer)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Calendar className="h-4 w-4" />
+                            <span>{new Date(expense.date).toLocaleDateString('es-ES')}</span>
+                          </div>
+                          <span>{expense.participants.length} participantes</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xl font-bold text-foreground">
+                          {expense.convertedAmount.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {(expense.convertedAmount / expense.participants.length).toFixed(2)} c/u
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
 
@@ -108,30 +127,38 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
           </div>
           
           <div className="space-y-3">
-            {mockBalances.map((balance, index) => (
-              <Card key={index} className="bg-muted/30">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary font-semibold">
-                        {balance.from[0]}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium text-foreground">{balance.from}</span>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium text-foreground">{balance.to}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-primary">
-                        {balance.amount.toFixed(2)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{baseCurrency}</div>
-                    </div>
-                  </div>
+            {!balanceData || balanceData.settlements.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <p className="text-muted-foreground">No hay pagos pendientes. ¡Todo está equilibrado!</p>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              balanceData.settlements.map((settlement, index) => (
+                <Card key={index} className="bg-muted/30">
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary font-semibold">
+                          {settlement.fromName[0]}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-foreground">{settlement.fromName}</span>
+                          <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                          <span className="font-medium text-foreground">{settlement.toName}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-primary">
+                          {settlement.amount.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{group.baseCurrency}</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
 
@@ -145,27 +172,31 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
               <CardDescription>Total gastado por cada miembro del grupo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockStats.totalByPerson.map((person) => {
-                const maxAmount = Math.max(...mockStats.totalByPerson.map(p => p.amount))
-                const percentage = (person.amount / maxAmount) * 100
-                
-                return (
-                  <div key={person.name} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-foreground">{person.name}</span>
-                      <span className="text-muted-foreground">
-                        {person.amount.toFixed(2)} {baseCurrency}
-                      </span>
+              {expensesByPerson.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No hay datos disponibles</p>
+              ) : (
+                expensesByPerson.map((person) => {
+                  const maxAmount = Math.max(...expensesByPerson.map(p => p.totalAmount))
+                  const percentage = maxAmount > 0 ? (person.totalAmount / maxAmount) * 100 : 0
+                  
+                  return (
+                    <div key={person.personId} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium text-foreground">{person.personName}</span>
+                        <span className="text-muted-foreground">
+                          {person.totalAmount.toFixed(2)} {group.baseCurrency}
+                        </span>
+                      </div>
+                      <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-primary to-secondary transition-all"
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="h-3 w-full bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-primary to-secondary transition-all"
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                )
-              })}
+                  )
+                })
+              )}
             </CardContent>
           </Card>
 
@@ -178,42 +209,46 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
               <CardDescription>Distribución de gastos según categoría</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {mockStats.byCategory.map((cat, index) => (
-                <div key={cat.category} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
+              {expensesByCategory.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No hay datos disponibles</p>
+              ) : (
+                expensesByCategory.map((cat, index) => (
+                  <div key={cat.category} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className={cn(
+                            "h-3 w-3 rounded-full",
+                            index % 4 === 0 && "bg-chart-1",
+                            index % 4 === 1 && "bg-chart-2",
+                            index % 4 === 2 && "bg-chart-3",
+                            index % 4 === 3 && "bg-chart-4"
+                          )}
+                        />
+                        <span className="font-medium text-foreground">{cat.category}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">
+                          {cat.totalAmount.toFixed(2)} {group.baseCurrency}
+                        </span>
+                        <Badge variant="outline">{cat.percentage.toFixed(0)}%</Badge>
+                      </div>
+                    </div>
+                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                       <div 
                         className={cn(
-                          "h-3 w-3 rounded-full",
-                          index === 0 && "bg-chart-1",
-                          index === 1 && "bg-chart-2",
-                          index === 2 && "bg-chart-3",
-                          index === 3 && "bg-chart-4"
+                          "h-full transition-all",
+                          index % 4 === 0 && "bg-chart-1",
+                          index % 4 === 1 && "bg-chart-2",
+                          index % 4 === 2 && "bg-chart-3",
+                          index % 4 === 3 && "bg-chart-4"
                         )}
+                        style={{ width: `${cat.percentage}%` }}
                       />
-                      <span className="font-medium text-foreground">{cat.category}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">
-                        {cat.amount.toFixed(2)} {baseCurrency}
-                      </span>
-                      <Badge variant="outline">{cat.percentage}%</Badge>
                     </div>
                   </div>
-                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={cn(
-                        "h-full transition-all",
-                        index === 0 && "bg-chart-1",
-                        index === 1 && "bg-chart-2",
-                        index === 2 && "bg-chart-3",
-                        index === 3 && "bg-chart-4"
-                      )}
-                      style={{ width: `${cat.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </CardContent>
           </Card>
         </TabsContent>

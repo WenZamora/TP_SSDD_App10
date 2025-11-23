@@ -1,18 +1,15 @@
 'use client'
 
-import { Home, Users, Plus, DollarSign, CalendarPlus, Receipt, History, UserPlus } from 'lucide-react'
+import { Home, Users, DollarSign, UserPlus } from 'lucide-react'
 import { Button } from "@/app/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 import { cn } from "@/app/lib/utils"
 
 interface SidebarProps {
-  currentView: 'dashboard' | 'activity' | 'groups' | 'history' | 'contacts'
-  onViewChange: (view: 'dashboard' | 'activity' | 'groups' | 'history' | 'contacts') => void
+  currentView: 'dashboard' | 'groups' | 'contacts'
+  onViewChange: (view: 'dashboard' | 'groups' | 'contacts') => void
   baseCurrency: string
   onCurrencyChange: (currency: string) => void
-  onAddExpense: () => void
-  onCreateActivity: () => void
-  onBackToDashboard: () => void
   isOpen: boolean
 }
 
@@ -21,9 +18,6 @@ export function Sidebar({
   onViewChange,
   baseCurrency,
   onCurrencyChange,
-  onAddExpense,
-  onCreateActivity,
-  onBackToDashboard,
   isOpen
 }: SidebarProps) {
   if (!isOpen) return null
@@ -35,7 +29,7 @@ export function Sidebar({
           <DollarSign className="h-6 w-6 text-primary-foreground" />
         </div>
         <div>
-          <h1 className="text-lg font-semibold text-sidebar-foreground">SplitWise</h1>
+          <h1 className="text-lg font-semibold text-sidebar-foreground">App10</h1>
           <p className="text-xs text-muted-foreground">Gestor de Gastos</p>
         </div>
       </div>
@@ -81,29 +75,6 @@ export function Sidebar({
         >
           <UserPlus className="h-5 w-5" />
           Contactos
-        </Button>
-
-        <Button
-          variant={currentView === 'history' ? 'secondary' : 'ghost'}
-          className={cn(
-            "justify-start gap-3",
-            currentView === 'history' 
-              ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-              : "text-sidebar-foreground hover:bg-sidebar-accent"
-          )}
-          onClick={() => onViewChange('history')}
-        >
-          <History className="h-5 w-5" />
-          Historial de Actividades
-        </Button>
-
-        <Button
-          variant="default"
-          className="justify-start gap-3 bg-secondary text-secondary-foreground hover:bg-secondary/90 mt-2"
-          onClick={onCreateActivity}
-        >
-          <CalendarPlus className="h-5 w-5" />
-          Nueva Actividad/Salida
         </Button>
       </nav>
 

@@ -6,7 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 import { PieChart, TrendingUp, TrendingDown, Calendar, DollarSign } from 'lucide-react'
 import { cn } from "@/app/lib/utils"
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useGroups } from '@/app/hooks/useGroups'
+import { useContacts } from '@/app/hooks/useContacts'
+import { useGroupBalance } from '@/app/hooks/useBalance'
 
 interface BalanceHistoryModalProps {
   open: boolean
@@ -14,60 +17,72 @@ interface BalanceHistoryModalProps {
   baseCurrency: string
 }
 
-const mockActivities = [
-  { id: 'all', name: 'Todas las actividades' },
-  { id: '1', name: 'Viaje a Bariloche' },
-  { id: '2', name: 'Cena de Cumpleaños Ana' },
-  { id: '3', name: 'Alquiler Departamento' },
-  { id: '4', name: 'Proyecto Final Universidad' },
-]
-
-const mockHistoricalBalances = [
-  { category: 'Pagaste de más', amount: 1250.00, percentage: 55, color: 'bg-success', textColor: 'text-success' },
-  { category: 'Pagaste de menos', amount: 750.00, percentage: 33, color: 'bg-destructive', textColor: 'text-destructive' },
-  { category: 'Balanceado', amount: 270.00, percentage: 12, color: 'bg-chart-3', textColor: 'text-chart-3' },
-]
-
-const mockDetailedBreakdown = [
-  { 
-    activity: 'Viaje a Bariloche', 
-    date: 'Oct 2025', 
-    totalPaid: 500.00, 
-    shouldPay: 350.00, 
-    balance: 150.00,
-    participants: 5
-  },
-  { 
-    activity: 'Cena de Cumpleaños Ana', 
-    date: 'Nov 2025', 
-    totalPaid: 450.00, 
-    shouldPay: 200.00, 
-    balance: 250.00,
-    participants: 8
-  },
-  { 
-    activity: 'Alquiler Departamento', 
-    date: 'Nov 2025', 
-    totalPaid: 300.00, 
-    shouldPay: 345.50, 
-    balance: -45.50,
-    participants: 3
-  },
-  { 
-    activity: 'Proyecto Final Universidad', 
-    date: 'Nov 2025', 
-    totalPaid: 280.00, 
-    shouldPay: 160.00, 
-    balance: 120.00,
-    participants: 4
-  },
-]
-
 export function BalanceHistoryModal({ open, onOpenChange, baseCurrency }: BalanceHistoryModalProps) {
-  const [selectedActivity, setSelectedActivity] = useState('all')
+  const [selectedGroup, setSelectedGroup] = useState('all')
+  const { data: groups = [] } = useGroups()
+  const { data: allContacts = [] } = useContacts()
   
-  const totalAmount = mockHistoricalBalances.reduce((acc, item) => acc + item.amount, 0)
-  const netBalance = mockDetailedBreakdown.reduce((acc, item) => acc + item.balance, 0)
+  // Get current user ID (this should come from a user context/hook in real app)
+  const currentUserId = useMemo(() => {
+    // For now, get from localStorage
+    const storedUser = localStorage.getItem('splitwise_user')
+    if (storedUser) {
+      return JSON.parse(storedUser).id
+    }
+    return null
+  }, [])
+
+  // Calculate group breakdowns
+  const detailedBreakdown = useMemo(() => {
+    const filteredGroups = selectedGroup === 'all' ? groups : groups.filter(g => g.id === selectedGroup)
+    
+    return filteredGroups.map(group => {
+      const contact = allContacts.find(c => c.id === currentUserId)
+      if (!contact) return null
+      
+      // Calculate total paid by current user
+      const totalPaid = group.expenses
+        .filter(e => e.payer === currentUserId)
+        .reduce((sum, e) => sum + e.convertedAmount, 0)
+      
+      // Calculate total share (what current user should pay)
+      const totalShare = group.expenses
+        .filter(e => e.participants.includes(currentUserId))
+        .reduce((sum, e) => sum + (e.convertedAmount / e.participants.length), 0)
+      
+      const balance = totalPaid - totalShare
+      
+      const date = new Date(group.updatedAt)
+      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+      
+      return {
+        group: group.name,
+        date: `${monthNames[date.getMonth()]} ${date.getFullYear()}`,
+        totalPaid,
+        shouldPay: totalShare,
+        balance,
+        participants: group.members.length
+      }
+    }).filter(Boolean)
+  }, [groups, selectedGroup, allContacts, currentUserId])
+  
+  // Calculate historical balances summary
+  const historicalBalances = useMemo(() => {
+    const positive = detailedBreakdown.filter(g => g!.balance > 0).reduce((sum, g) => sum + g!.balance, 0)
+    const negative = Math.abs(detailedBreakdown.filter(g => g!.balance < 0).reduce((sum, g) => sum + g!.balance, 0))
+    const balanced = detailedBreakdown.filter(g => Math.abs(g!.balance) < 0.01).reduce((sum, g) => sum + Math.abs(g!.balance), 0)
+    
+    const total = positive + negative + balanced
+    
+    return [
+      { category: 'Pagaste de más', amount: positive, percentage: total > 0 ? Math.round((positive / total) * 100) : 0, color: 'bg-success', textColor: 'text-success' },
+      { category: 'Pagaste de menos', amount: negative, percentage: total > 0 ? Math.round((negative / total) * 100) : 0, color: 'bg-destructive', textColor: 'text-destructive' },
+      { category: 'Balanceado', amount: balanced, percentage: total > 0 ? Math.round((balanced / total) * 100) : 0, color: 'bg-chart-3', textColor: 'text-chart-3' },
+    ]
+  }, [detailedBreakdown])
+  
+  const totalAmount = historicalBalances.reduce((acc, item) => acc + item.amount, 0)
+  const netBalance = detailedBreakdown.reduce((acc, item) => acc + (item?.balance || 0), 0)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,14 +98,15 @@ export function BalanceHistoryModal({ open, onOpenChange, baseCurrency }: Balanc
           {/* Filter */}
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Filtrar por:</span>
-            <Select value={selectedActivity} onValueChange={setSelectedActivity}>
+            <Select value={selectedGroup} onValueChange={setSelectedGroup}>
               <SelectTrigger className="w-64">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {mockActivities.map((activity) => (
-                  <SelectItem key={activity.id} value={activity.id}>
-                    {activity.name}
+                <SelectItem value="all">Todos los grupos</SelectItem>
+                {groups.map((group) => (
+                  <SelectItem key={group.id} value={group.id}>
+                    {group.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -115,32 +131,32 @@ export function BalanceHistoryModal({ open, onOpenChange, baseCurrency }: Balanc
                         r="40"
                         fill="none"
                         stroke="currentColor"
-                        strokeWidth="20"
-                        className="text-success"
-                        strokeDasharray={`${mockHistoricalBalances[0].percentage * 2.51} ${251 - mockHistoricalBalances[0].percentage * 2.51}`}
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="20"
-                        className="text-destructive"
-                        strokeDasharray={`${mockHistoricalBalances[1].percentage * 2.51} ${251 - mockHistoricalBalances[1].percentage * 2.51}`}
-                        strokeDashoffset={-mockHistoricalBalances[0].percentage * 2.51}
-                      />
-                      <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="20"
-                        className="text-chart-3"
-                        strokeDasharray={`${mockHistoricalBalances[2].percentage * 2.51} ${251 - mockHistoricalBalances[2].percentage * 2.51}`}
-                        strokeDashoffset={-(mockHistoricalBalances[0].percentage + mockHistoricalBalances[1].percentage) * 2.51}
-                      />
+                      strokeWidth="20"
+                      className="text-success"
+                      strokeDasharray={`${historicalBalances[0].percentage * 2.51} ${251 - historicalBalances[0].percentage * 2.51}`}
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="20"
+                      className="text-destructive"
+                      strokeDasharray={`${historicalBalances[1].percentage * 2.51} ${251 - historicalBalances[1].percentage * 2.51}`}
+                      strokeDashoffset={-historicalBalances[0].percentage * 2.51}
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="20"
+                      className="text-chart-3"
+                      strokeDasharray={`${historicalBalances[2].percentage * 2.51} ${251 - historicalBalances[2].percentage * 2.51}`}
+                      strokeDashoffset={-(historicalBalances[0].percentage + historicalBalances[1].percentage) * 2.51}
+                    />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="text-center">
@@ -155,7 +171,7 @@ export function BalanceHistoryModal({ open, onOpenChange, baseCurrency }: Balanc
 
                 {/* Legend */}
                 <div className="space-y-6">
-                  {mockHistoricalBalances.map((item) => (
+                  {historicalBalances.map((item) => (
                     <div key={item.category} className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -206,12 +222,12 @@ export function BalanceHistoryModal({ open, onOpenChange, baseCurrency }: Balanc
 
             <Card>
               <CardHeader className="pb-3">
-                <CardDescription className="text-xs">Total de Actividades</CardDescription>
+                <CardDescription className="text-xs">Total de Grupos</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center gap-2">
                   <span className="text-3xl font-bold text-foreground">
-                    {mockDetailedBreakdown.length}
+                    {detailedBreakdown.length}
                   </span>
                   <Calendar className="h-5 w-5 text-muted-foreground" />
                 </div>
@@ -236,24 +252,24 @@ export function BalanceHistoryModal({ open, onOpenChange, baseCurrency }: Balanc
           {/* Detailed Breakdown */}
           <Card>
             <CardHeader>
-              <CardTitle>Desglose por Actividad</CardTitle>
-              <CardDescription>Detalle de pagos y balances por cada actividad</CardDescription>
+              <CardTitle>Desglose por Grupo</CardTitle>
+              <CardDescription>Detalle de pagos y balances por cada grupo</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {mockDetailedBreakdown.map((item, index) => (
+                {detailedBreakdown.map((item, index) => (
                   <div 
                     key={index}
                     className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                   >
                     <div className="space-y-1 flex-1">
-                      <div className="font-semibold text-foreground">{item.activity}</div>
+                      <div className="font-semibold text-foreground">{item!.group}</div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5" />
-                          {item.date}
+                          {item!.date}
                         </span>
-                        <span>{item.participants} participantes</span>
+                        <span>{item!.participants} participantes</span>
                       </div>
                     </div>
                     
@@ -261,28 +277,28 @@ export function BalanceHistoryModal({ open, onOpenChange, baseCurrency }: Balanc
                       <div className="text-right">
                         <div className="text-xs text-muted-foreground mb-1">Pagaste</div>
                         <div className="font-semibold text-foreground">
-                          {item.totalPaid.toFixed(2)} {baseCurrency}
+                          {item!.totalPaid.toFixed(2)} {baseCurrency}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-muted-foreground mb-1">Debías</div>
                         <div className="font-semibold text-foreground">
-                          {item.shouldPay.toFixed(2)} {baseCurrency}
+                          {item!.shouldPay.toFixed(2)} {baseCurrency}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-muted-foreground mb-1">Balance</div>
                         <div className="flex items-center justify-end gap-1">
-                          {item.balance >= 0 ? (
+                          {item!.balance >= 0 ? (
                             <TrendingUp className="h-4 w-4 text-success" />
                           ) : (
                             <TrendingDown className="h-4 w-4 text-destructive" />
                           )}
                           <span className={cn(
                             "font-bold text-base",
-                            item.balance >= 0 ? "text-success" : "text-destructive"
+                            item!.balance >= 0 ? "text-success" : "text-destructive"
                           )}>
-                            {item.balance >= 0 ? '+' : ''}{item.balance.toFixed(2)}
+                            {item!.balance >= 0 ? '+' : ''}{item!.balance.toFixed(2)}
                           </span>
                         </div>
                       </div>

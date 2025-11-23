@@ -1,140 +1,185 @@
 {
-  "contacts": [
+  "users": [
     {
-      "id": "contact-1",
+      "id": "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
       "name": "Juan Pérez",
       "email": "juan.perez@example.com",
       "avatar": "/placeholder-user.jpg",
+      "contacts": [
+        "385637d2-338e-4ab4-88f7-e851879102bb",
+        "683271ad-1086-4c32-8977-9b7d43bf9e6f",
+        "aa05ceb0-27fb-4e43-927f-5c41755185d4"
+      ],
       "createdAt": 1700000000000
     },
     {
-      "id": "contact-2",
+      "id": "385637d2-338e-4ab4-88f7-e851879102bb",
       "name": "María García",
       "email": "maria.garcia@example.com",
       "avatar": "/placeholder-user.jpg",
+      "contacts": [
+        "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+        "683271ad-1086-4c32-8977-9b7d43bf9e6f",
+        "aa05ceb0-27fb-4e43-927f-5c41755185d4",
+        "e54613ef-c40c-4958-beba-854ed71c1171",
+        "69484327-f8b3-429f-8c64-11cebf84ed96"
+      ],
       "createdAt": 1700100000000
     },
     {
-      "id": "contact-3",
+      "id": "683271ad-1086-4c32-8977-9b7d43bf9e6f",
       "name": "Carlos López",
       "email": "carlos.lopez@example.com",
       "avatar": "/placeholder-user.jpg",
+      "contacts": [
+        "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+        "385637d2-338e-4ab4-88f7-e851879102bb",
+        "aa05ceb0-27fb-4e43-927f-5c41755185d4"
+      ],
       "createdAt": 1700200000000
     },
     {
-      "id": "contact-4",
+      "id": "aa05ceb0-27fb-4e43-927f-5c41755185d4",
       "name": "Ana Martínez",
       "email": "ana.martinez@example.com",
       "avatar": "/placeholder-user.jpg",
+      "contacts": [
+        "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+        "683271ad-1086-4c32-8977-9b7d43bf9e6f",
+        "385637d2-338e-4ab4-88f7-e851879102bb",
+        "e54613ef-c40c-4958-beba-854ed71c1171",
+        "69484327-f8b3-429f-8c64-11cebf84ed96"
+      ],
       "createdAt": 1700300000000
     },
     {
-      "id": "contact-5",
+      "id": "e54613ef-c40c-4958-beba-854ed71c1171",
       "name": "Pedro Rodríguez",
       "email": "pedro.rodriguez@example.com",
       "avatar": "/placeholder-user.jpg",
+      "contacts": [
+        "385637d2-338e-4ab4-88f7-e851879102bb",
+        "aa05ceb0-27fb-4e43-927f-5c41755185d4",
+        "69484327-f8b3-429f-8c64-11cebf84ed96"
+      ],
       "createdAt": 1700400000000
     },
     {
-      "id": "contact-6",
+      "id": "69484327-f8b3-429f-8c64-11cebf84ed96",
       "name": "Laura Fernández",
       "email": "laura.fernandez@example.com",
       "avatar": "/placeholder-user.jpg",
+      "contacts": [
+        "385637d2-338e-4ab4-88f7-e851879102bb",
+        "aa05ceb0-27fb-4e43-927f-5c41755185d4",
+        "e54613ef-c40c-4958-beba-854ed71c1171"
+      ],
       "createdAt": 1700500000000
+    },
+    {
+      "id": "05ab4868-e44d-42a9-8013-3bcfdd579352",
+      "name": "Juan Cruz Mateos",
+      "email": "juan@gmail.com",
+      "avatar": "",
+      "contacts": [
+        "aa05ceb0-27fb-4e43-927f-5c41755185d4",
+        "1ad0c0bf-b026-467e-af29-ea58fde6d9f5"
+      ],
+      "createdAt": 1763920863076
     }
   ],
   "groups": [
     {
-      "id": "group-1",
+      "id": "b0a4f2b4-2669-4e16-9e4a-d4676ad6a1d6",
       "name": "Viaje a Bariloche",
       "description": "Vacaciones de invierno en la Patagonia",
       "baseCurrency": "ARS",
       "members": [
-        "contact-1",
-        "contact-2",
-        "contact-3"
+        "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+        "385637d2-338e-4ab4-88f7-e851879102bb",
+        "683271ad-1086-4c32-8977-9b7d43bf9e6f"
       ],
       "expenses": [
         {
-          "id": "expense-1",
+          "id": "9dbfe682-861e-49ce-97b8-fd460d4d246d",
           "description": "Alquiler de cabaña",
           "amount": 180000,
           "currency": "ARS",
           "convertedAmount": 180000,
           "category": "Alojamiento",
-          "payer": "contact-1",
+          "payer": "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
           "participants": [
-            "contact-1",
-            "contact-2",
-            "contact-3"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "385637d2-338e-4ab4-88f7-e851879102bb",
+            "683271ad-1086-4c32-8977-9b7d43bf9e6f"
           ],
           "date": 1704067200000,
           "createdAt": 1704067200000,
           "updatedAt": 1704067200000
         },
         {
-          "id": "expense-2",
+          "id": "b673d320-937b-47b8-b78c-b3d7a5d83e1f",
           "description": "Supermercado",
           "amount": 45000,
           "currency": "ARS",
           "convertedAmount": 45000,
           "category": "Comida",
-          "payer": "contact-2",
+          "payer": "385637d2-338e-4ab4-88f7-e851879102bb",
           "participants": [
-            "contact-1",
-            "contact-2",
-            "contact-3"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "385637d2-338e-4ab4-88f7-e851879102bb",
+            "683271ad-1086-4c32-8977-9b7d43bf9e6f"
           ],
           "date": 1704153600000,
           "createdAt": 1704153600000,
           "updatedAt": 1704153600000
         },
         {
-          "id": "expense-3",
+          "id": "80475e4d-458b-494e-a14c-5cfeed39a4b3",
           "description": "Restaurante Cerro Catedral",
           "amount": 72000,
           "currency": "ARS",
           "convertedAmount": 72000,
           "category": "Comida",
-          "payer": "contact-3",
+          "payer": "683271ad-1086-4c32-8977-9b7d43bf9e6f",
           "participants": [
-            "contact-1",
-            "contact-2",
-            "contact-3"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "385637d2-338e-4ab4-88f7-e851879102bb",
+            "683271ad-1086-4c32-8977-9b7d43bf9e6f"
           ],
           "date": 1704240000000,
           "createdAt": 1704240000000,
           "updatedAt": 1704240000000
         },
         {
-          "id": "expense-4",
+          "id": "4e73d415-af1d-4355-a0c4-1e47a4aef405",
           "description": "Nafta para el viaje",
           "amount": 50000,
           "currency": "ARS",
           "convertedAmount": 50000,
           "category": "Transporte",
-          "payer": "contact-1",
+          "payer": "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
           "participants": [
-            "contact-1",
-            "contact-2",
-            "contact-3"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "385637d2-338e-4ab4-88f7-e851879102bb",
+            "683271ad-1086-4c32-8977-9b7d43bf9e6f"
           ],
           "date": 1704067200000,
           "createdAt": 1704067200000,
           "updatedAt": 1704067200000
         },
         {
-          "id": "expense-5",
+          "id": "11ed188a-c9b6-448b-8ce6-a4d9e52121bc",
           "description": "Pase de esquí (3 días)",
           "amount": 120000,
           "currency": "ARS",
           "convertedAmount": 120000,
           "category": "Entretenimiento",
-          "payer": "contact-2",
+          "payer": "385637d2-338e-4ab4-88f7-e851879102bb",
           "participants": [
-            "contact-1",
-            "contact-2",
-            "contact-3"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "385637d2-338e-4ab4-88f7-e851879102bb",
+            "683271ad-1086-4c32-8977-9b7d43bf9e6f"
           ],
           "date": 1704153600000,
           "createdAt": 1704153600000,
@@ -145,66 +190,66 @@
       "updatedAt": 1704240000000
     },
     {
-      "id": "group-2",
+      "id": "e85c965a-dc28-4c9c-b50d-362e6f34f488",
       "name": "Cena de Cumpleaños",
       "description": "Festejo de cumpleaños de María",
       "baseCurrency": "ARS",
       "members": [
-        "contact-2",
-        "contact-4",
-        "contact-5",
-        "contact-6"
+        "385637d2-338e-4ab4-88f7-e851879102bb",
+        "aa05ceb0-27fb-4e43-927f-5c41755185d4",
+        "e54613ef-c40c-4958-beba-854ed71c1171",
+        "69484327-f8b3-429f-8c64-11cebf84ed96"
       ],
       "expenses": [
         {
-          "id": "expense-6",
+          "id": "51a61b36-85a5-444f-9cae-eaa52dc3fdbf",
           "description": "Restaurante Don Julio",
           "amount": 85000,
           "currency": "ARS",
           "convertedAmount": 85000,
           "category": "Comida",
-          "payer": "contact-4",
+          "payer": "aa05ceb0-27fb-4e43-927f-5c41755185d4",
           "participants": [
-            "contact-2",
-            "contact-4",
-            "contact-5",
-            "contact-6"
+            "385637d2-338e-4ab4-88f7-e851879102bb",
+            "aa05ceb0-27fb-4e43-927f-5c41755185d4",
+            "e54613ef-c40c-4958-beba-854ed71c1171",
+            "69484327-f8b3-429f-8c64-11cebf84ed96"
           ],
           "date": 1705622400000,
           "createdAt": 1705622400000,
           "updatedAt": 1705622400000
         },
         {
-          "id": "expense-7",
+          "id": "c0b9bd15-f645-4452-acac-45f95d0fcb1b",
           "description": "Torta de cumpleaños",
           "amount": 18000,
           "currency": "ARS",
           "convertedAmount": 18000,
           "category": "Comida",
-          "payer": "contact-5",
+          "payer": "e54613ef-c40c-4958-beba-854ed71c1171",
           "participants": [
-            "contact-2",
-            "contact-4",
-            "contact-5",
-            "contact-6"
+            "385637d2-338e-4ab4-88f7-e851879102bb",
+            "aa05ceb0-27fb-4e43-927f-5c41755185d4",
+            "e54613ef-c40c-4958-beba-854ed71c1171",
+            "69484327-f8b3-429f-8c64-11cebf84ed96"
           ],
           "date": 1705622400000,
           "createdAt": 1705622400000,
           "updatedAt": 1705622400000
         },
         {
-          "id": "expense-8",
+          "id": "4fde7fe8-c2e2-414c-92be-e451cb722ec5",
           "description": "Decoración y globos",
           "amount": 12000,
           "currency": "ARS",
           "convertedAmount": 12000,
           "category": "Entretenimiento",
-          "payer": "contact-6",
+          "payer": "69484327-f8b3-429f-8c64-11cebf84ed96",
           "participants": [
-            "contact-2",
-            "contact-4",
-            "contact-5",
-            "contact-6"
+            "385637d2-338e-4ab4-88f7-e851879102bb",
+            "aa05ceb0-27fb-4e43-927f-5c41755185d4",
+            "e54613ef-c40c-4958-beba-854ed71c1171",
+            "69484327-f8b3-429f-8c64-11cebf84ed96"
           ],
           "date": 1705622400000,
           "createdAt": 1705622400000,
@@ -215,62 +260,62 @@
       "updatedAt": 1705622400000
     },
     {
-      "id": "group-3",
+      "id": "45402d1e-4568-4a6a-a13e-dcad89784f39",
       "name": "Proyecto Universidad",
       "description": "Gastos del proyecto final de carrera",
       "baseCurrency": "ARS",
       "members": [
-        "contact-1",
-        "contact-3",
-        "contact-4"
+        "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+        "683271ad-1086-4c32-8977-9b7d43bf9e6f",
+        "aa05ceb0-27fb-4e43-927f-5c41755185d4"
       ],
       "expenses": [
         {
-          "id": "expense-9",
+          "id": "b86c1103-6fa0-42a5-b516-2481e676dbf0",
           "description": "Impresiones y materiales",
           "amount": 15000,
           "currency": "ARS",
           "convertedAmount": 15000,
           "category": "Materiales",
-          "payer": "contact-1",
+          "payer": "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
           "participants": [
-            "contact-1",
-            "contact-3",
-            "contact-4"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "683271ad-1086-4c32-8977-9b7d43bf9e6f",
+            "aa05ceb0-27fb-4e43-927f-5c41755185d4"
           ],
           "date": 1706227200000,
           "createdAt": 1706227200000,
           "updatedAt": 1706227200000
         },
         {
-          "id": "expense-10",
+          "id": "b3749afe-2f7c-40cc-b46f-f8c0ace110fa",
           "description": "Arduino y sensores",
           "amount": 35000,
           "currency": "ARS",
           "convertedAmount": 35000,
           "category": "Materiales",
-          "payer": "contact-3",
+          "payer": "683271ad-1086-4c32-8977-9b7d43bf9e6f",
           "participants": [
-            "contact-1",
-            "contact-3",
-            "contact-4"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "683271ad-1086-4c32-8977-9b7d43bf9e6f",
+            "aa05ceb0-27fb-4e43-927f-5c41755185d4"
           ],
           "date": 1706313600000,
           "createdAt": 1706313600000,
           "updatedAt": 1706313600000
         },
         {
-          "id": "expense-11",
+          "id": "9b1a3fff-c05b-45bf-a071-bc34376187bb",
           "description": "Cafetería durante reuniones",
           "amount": 9000,
           "currency": "ARS",
           "convertedAmount": 9000,
           "category": "Comida",
-          "payer": "contact-4",
+          "payer": "aa05ceb0-27fb-4e43-927f-5c41755185d4",
           "participants": [
-            "contact-1",
-            "contact-3",
-            "contact-4"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "683271ad-1086-4c32-8977-9b7d43bf9e6f",
+            "aa05ceb0-27fb-4e43-927f-5c41755185d4"
           ],
           "date": 1706400000000,
           "createdAt": 1706400000000,
@@ -281,74 +326,74 @@
       "updatedAt": 1706400000000
     },
     {
-      "id": "group-4",
+      "id": "8332dec3-2176-4dc5-ae41-b23321cb4485",
       "name": "Compartir Departamento",
       "description": "Gastos mensuales del departamento compartido",
       "baseCurrency": "ARS",
       "members": [
-        "contact-1",
-        "contact-2"
+        "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+        "385637d2-338e-4ab4-88f7-e851879102bb"
       ],
       "expenses": [
         {
-          "id": "expense-12",
+          "id": "90c81f90-e6c8-4736-be57-1c343735b63f",
           "description": "Alquiler Diciembre",
           "amount": 150000,
           "currency": "ARS",
           "convertedAmount": 150000,
           "category": "Alojamiento",
-          "payer": "contact-1",
+          "payer": "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
           "participants": [
-            "contact-1",
-            "contact-2"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "385637d2-338e-4ab4-88f7-e851879102bb"
           ],
           "date": 1701388800000,
           "createdAt": 1701388800000,
           "updatedAt": 1701388800000
         },
         {
-          "id": "expense-13",
+          "id": "cf0944f4-72aa-41a9-a94b-1ed8773a3fdb",
           "description": "Servicios (luz, gas, agua)",
           "amount": 32000,
           "currency": "ARS",
           "convertedAmount": 32000,
           "category": "Servicios",
-          "payer": "contact-2",
+          "payer": "385637d2-338e-4ab4-88f7-e851879102bb",
           "participants": [
-            "contact-1",
-            "contact-2"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "385637d2-338e-4ab4-88f7-e851879102bb"
           ],
           "date": 1701475200000,
           "createdAt": 1701475200000,
           "updatedAt": 1701475200000
         },
         {
-          "id": "expense-14",
+          "id": "c000fbbb-0e1e-4c6e-be4d-89df7bf16968",
           "description": "Internet y cable",
           "amount": 18000,
           "currency": "ARS",
           "convertedAmount": 18000,
           "category": "Servicios",
-          "payer": "contact-1",
+          "payer": "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
           "participants": [
-            "contact-1",
-            "contact-2"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "385637d2-338e-4ab4-88f7-e851879102bb"
           ],
           "date": 1701561600000,
           "createdAt": 1701561600000,
           "updatedAt": 1701561600000
         },
         {
-          "id": "expense-15",
+          "id": "6f42dc31-3c19-4431-ace3-220b4af30f4d",
           "description": "Limpieza y productos",
           "amount": 8000,
           "currency": "ARS",
           "convertedAmount": 8000,
           "category": "Hogar",
-          "payer": "contact-2",
+          "payer": "385637d2-338e-4ab4-88f7-e851879102bb",
           "participants": [
-            "contact-1",
-            "contact-2"
+            "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+            "385637d2-338e-4ab4-88f7-e851879102bb"
           ],
           "date": 1701648000000,
           "createdAt": 1701648000000,
@@ -358,11 +403,5 @@
       "createdAt": 1701300000000,
       "updatedAt": 1701648000000
     }
-  ],
-  "currentUser": {
-    "id": "contact-1",
-    "name": "Juan Pérez",
-    "email": "juan.perez@example.com",
-    "avatar": "/placeholder-user.jpg"
-  }
+  ]
 }

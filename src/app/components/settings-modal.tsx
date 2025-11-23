@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Label } from "@/app/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { UserCircle, Users, Key, Search, Trash2, UserPlus } from 'lucide-react'
 import { useToast } from "@/app/hooks/use-toast"
+import { useContacts, useCreateContact, useDeleteContact } from '@/app/hooks/useContacts'
 
 interface SettingsModalProps {
   open: boolean
@@ -23,20 +24,21 @@ interface SettingsModalProps {
   onUpdateUser: (name: string) => void
 }
 
-// Mock friends data
-const mockFriends = [
-  { id: '1', name: 'María García' },
-  { id: '2', name: 'Carlos López' },
-  { id: '3', name: 'Ana Martínez' },
-]
-
 export function SettingsModal({ open, onOpenChange, user, onUpdateUser }: SettingsModalProps) {
   const [newName, setNewName] = useState(user.name)
-  const [friends, setFriends] = useState(mockFriends)
   const [newFriendName, setNewFriendName] = useState('')
+  const [newFriendEmail, setNewFriendEmail] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [groupCode, setGroupCode] = useState('')
   const { toast } = useToast()
+  
+  const { data: contacts = [], isLoading } = useContacts()
+  const createContact = useCreateContact()
+  const deleteContact = useDeleteContact()
+  
+  useEffect(() => {
+    setNewName(user.name)
+  }, [user.name])
 
   const handleSaveName = () => {
     if (newName.trim()) {
@@ -48,27 +50,43 @@ export function SettingsModal({ open, onOpenChange, user, onUpdateUser }: Settin
     }
   }
 
-  const handleAddFriend = () => {
-    if (newFriendName.trim()) {
-      const newFriend = {
-        id: `friend_${Date.now()}`,
-        name: newFriendName.trim()
+  const handleAddFriend = async () => {
+    if (newFriendName.trim() && newFriendEmail.trim()) {
+      try {
+        await createContact.mutateAsync({
+          name: newFriendName.trim(),
+          email: newFriendEmail.trim()
+        })
+        setNewFriendName('')
+        setNewFriendEmail('')
+        toast({
+          title: 'Contacto añadido',
+          description: `${newFriendName} ha sido añadido a tus contactos`,
+        })
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'No se pudo añadir el contacto',
+          variant: 'destructive'
+        })
       }
-      setFriends([...friends, newFriend])
-      setNewFriendName('')
-      toast({
-        title: 'Amigo añadido',
-        description: `${newFriend.name} ha sido añadido a tus contactos`,
-      })
     }
   }
 
-  const handleRemoveFriend = (id: string) => {
-    setFriends(friends.filter(f => f.id !== id))
-    toast({
-      title: 'Amigo eliminado',
-      description: 'El contacto ha sido eliminado',
-    })
+  const handleRemoveFriend = async (id: string, name: string) => {
+    try {
+      await deleteContact.mutateAsync(id)
+      toast({
+        title: 'Contacto eliminado',
+        description: `${name} ha sido eliminado de tus contactos`,
+      })
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo eliminar el contacto. Puede estar en uso en algún grupo.',
+        variant: 'destructive'
+      })
+    }
   }
 
   const handleJoinGroup = () => {
@@ -81,8 +99,9 @@ export function SettingsModal({ open, onOpenChange, user, onUpdateUser }: Settin
     }
   }
 
-  const filteredFriends = friends.filter(friend =>
-    friend.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    contact.email.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
@@ -169,22 +188,30 @@ export function SettingsModal({ open, onOpenChange, user, onUpdateUser }: Settin
                 </div>
 
                 <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {filteredFriends.length === 0 ? (
+                  {isLoading ? (
                     <p className="text-sm text-muted-foreground text-center py-4">
-                      No se encontraron amigos
+                      Cargando...
+                    </p>
+                  ) : filteredContacts.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No se encontraron contactos
                     </p>
                   ) : (
-                    filteredFriends.map((friend) => (
+                    filteredContacts.map((contact) => (
                       <div
-                        key={friend.id}
+                        key={contact.id}
                         className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                       >
-                        <span className="font-medium">{friend.name}</span>
+                        <div>
+                          <div className="font-medium">{contact.name}</div>
+                          <div className="text-xs text-muted-foreground">{contact.email}</div>
+                        </div>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleRemoveFriend(friend.id)}
+                          onClick={() => handleRemoveFriend(contact.id, contact.name)}
                           className="text-destructive hover:text-destructive"
+                          disabled={deleteContact.isPending}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -194,23 +221,31 @@ export function SettingsModal({ open, onOpenChange, user, onUpdateUser }: Settin
                 </div>
 
                 <div className="pt-4 border-t space-y-3">
-                  <Label htmlFor="new-friend">Añadir Nuevo Amigo</Label>
-                  <div className="flex gap-2">
+                  <Label htmlFor="new-friend">Añadir Nuevo Contacto</Label>
+                  <div className="space-y-2">
                     <Input
                       id="new-friend"
-                      placeholder="Nombre del amigo"
+                      placeholder="Nombre del contacto"
                       value={newFriendName}
                       onChange={(e) => setNewFriendName(e.target.value)}
+                    />
+                    <Input
+                      id="new-friend-email"
+                      type="email"
+                      placeholder="Email del contacto"
+                      value={newFriendEmail}
+                      onChange={(e) => setNewFriendEmail(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleAddFriend()}
                     />
-                    <Button onClick={handleAddFriend} className="gap-2">
+                    <Button 
+                      onClick={handleAddFriend} 
+                      className="w-full gap-2"
+                      disabled={!newFriendName.trim() || !newFriendEmail.trim() || createContact.isPending}
+                    >
                       <UserPlus className="h-4 w-4" />
-                      Añadir
+                      Añadir Contacto
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    El ID del amigo será generado automáticamente
-                  </p>
                 </div>
               </CardContent>
             </Card>

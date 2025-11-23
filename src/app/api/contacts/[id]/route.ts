@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getContactById, updateContact, deleteContact } from "@/app/lib/contacts";
+import { getContactById, updateContact, deleteContact, removeContactFromUser } from "@/app/lib/contacts";
 
 /**
  * GET /api/contacts/[id]
@@ -67,14 +67,33 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 }
 
 /**
- * DELETE /api/contacts/[id]
- * Deletes a contact
- * Returns 409 if contact is member of any group
+ * DELETE /api/contacts/[id]?userId=xxx
+ * If userId is provided: removes contact from user's contact list
+ * If userId is not provided: deletes the user entirely (admin operation)
+ * Returns 409 if trying to delete a user who is member of any group
  */
-export async function DELETE(_: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    const result = await deleteContact(params.id);
-    return NextResponse.json(result, { status: 200 });
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
+    
+    if (userId) {
+      // Remove contact from user's contact list
+      const result = await removeContactFromUser(userId, params.id);
+      
+      if (!result) {
+        return NextResponse.json(
+          { error: "Usuario no encontrado" },
+          { status: 404 }
+        );
+      }
+      
+      return NextResponse.json({ success: true }, { status: 200 });
+    } else {
+      // Delete user entirely (admin operation)
+      const result = await deleteContact(params.id);
+      return NextResponse.json(result, { status: 200 });
+    }
     
   } catch (error) {
     console.error("Error deleting contact:", error);
