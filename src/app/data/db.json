@@ -161,10 +161,22 @@
           "date": 1704153600000,
           "createdAt": 1704153600000,
           "updatedAt": 1704153600000
+        },
+        {
+          "id": "09c6f7b8-0f26-4916-b61b-f67de6fd1c14",
+          "description": "Comida restaurante",
+          "amount": 100,
+          "currency": "USD",
+          "convertedAmount": 141667,
+          "payer": "1ad0c0bf-b026-467e-af29-ea58fde6d9f5",
+          "category": "Food",
+          "date": 1764024647862,
+          "createdAt": 1764024648924,
+          "updatedAt": 1764024648924
         }
       ],
       "createdAt": 1704000000000,
-      "updatedAt": 1704240000000
+      "updatedAt": 1764024648924
     },
     {
       "id": "e85c965a-dc28-4c9c-b50d-362e6f34f488",
@@ -207,10 +219,22 @@
           "date": 1705622400000,
           "createdAt": 1705622400000,
           "updatedAt": 1705622400000
+        },
+        {
+          "id": "1a556e29-1661-4d4f-bd70-0f174fd181cf",
+          "description": "Comida restaurante",
+          "amount": 200,
+          "currency": "BRL",
+          "convertedAmount": 52520.16,
+          "payer": "385637d2-338e-4ab4-88f7-e851879102bb",
+          "category": "Food",
+          "date": 1764024860795,
+          "createdAt": 1764024861686,
+          "updatedAt": 1764024861686
         }
       ],
       "createdAt": 1705600000000,
-      "updatedAt": 1705622400000
+      "updatedAt": 1764024861686
     },
     {
       "id": "45402d1e-4568-4a6a-a13e-dcad89784f39",
