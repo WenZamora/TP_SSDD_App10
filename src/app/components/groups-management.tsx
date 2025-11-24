@@ -38,6 +38,7 @@ export function GroupsManagement() {
   const deleteGroup = useDeleteGroup()
 
   const [newGroupName, setNewGroupName] = useState('')
+  const [newGroupDescription, setNewGroupDescription] = useState('')
   const [newGroupCurrency, setNewGroupCurrency] = useState('ARS')
   const [isCreating, setIsCreating] = useState(false)
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -68,6 +69,7 @@ export function GroupsManagement() {
       // Add current user as the first member of the group
       await createGroup.mutateAsync({
         name: newGroupName,
+        description: newGroupDescription,
         baseCurrency: newGroupCurrency,
         members: [currentUser.id],
         creatorUserId: currentUser.id
@@ -75,6 +77,7 @@ export function GroupsManagement() {
       
       toast.success('Grupo creado exitosamente')
       setNewGroupName("")
+      setNewGroupDescription("")
       setNewGroupCurrency('ARS')
       setIsCreating(false)
     } catch (error: any) {
@@ -259,6 +262,16 @@ export function GroupsManagement() {
                   placeholder="Ej: Viaje a Bariloche"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="groupDescription">Descripción del Grupo</Label>
+                <Input 
+                  id="groupDescription"
+                  placeholder="Ej: Vacaciones de invierno en la Patagonia"
+                  value={newGroupDescription}
+                  onChange={(e) => setNewGroupDescription(e.target.value)}
                 />
               </div>
               
