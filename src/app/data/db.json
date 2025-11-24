@@ -93,7 +93,9 @@
       "avatar": "",
       "contacts": [
         "05ab4868-e44d-42a9-8013-3bcfdd579352",
-        "385637d2-338e-4ab4-88f7-e851879102bb"
+        "385637d2-338e-4ab4-88f7-e851879102bb",
+        "69484327-f8b3-429f-8c64-11cebf84ed96",
+        "683271ad-1086-4c32-8977-9b7d43bf9e6f"
       ],
       "createdAt": 1764015568671
     }
@@ -382,18 +384,70 @@
       "updatedAt": 1763926950111
     },
     {
-      "id": "2148c7af-9a65-4e38-90c3-650eb474a207",
+      "id": "eaee938e-ccf3-45bc-b606-265bbc25d62d",
       "name": "Viaje a Japón",
-      "description": "",
+      "description": "Viaje al pais oriental",
+      "baseCurrency": "ARS",
+      "members": [
+        "0fb6750c-8eca-434b-add4-c664d1d4f5a7",
+        "05ab4868-e44d-42a9-8013-3bcfdd579352",
+        "69484327-f8b3-429f-8c64-11cebf84ed96"
+      ],
+      "expenses": [
+        {
+          "id": "f39cca0b-1366-4d02-91be-3d1a26f8c035",
+          "description": "Comimos sushi",
+          "amount": 30000,
+          "currency": "JPY",
+          "convertedAmount": 30000,
+          "payer": "05ab4868-e44d-42a9-8013-3bcfdd579352",
+          "category": "Food",
+          "date": 1764017354013,
+          "createdAt": 1764017356122,
+          "updatedAt": 1764017356122
+        },
+        {
+          "id": "b593e658-768e-4f5e-a108-6d60d8d5db09",
+          "description": "Lugar extraño que cobraba en euros...",
+          "amount": 30,
+          "currency": "EUR",
+          "convertedAmount": 30,
+          "payer": "0fb6750c-8eca-434b-add4-c664d1d4f5a7",
+          "category": "Other",
+          "date": 1764017392681,
+          "createdAt": 1764017393565,
+          "updatedAt": 1764017393565
+        },
+        {
+          "id": "a91b2554-22f9-426f-ba37-3d54dc0e11f6",
+          "description": "Tienda León para ir a Ezeiza",
+          "amount": 120000,
+          "currency": "ARS",
+          "convertedAmount": 120000,
+          "payer": "69484327-f8b3-429f-8c64-11cebf84ed96",
+          "category": "Transport",
+          "date": 1764017449861,
+          "createdAt": 1764017449886,
+          "updatedAt": 1764017449886
+        }
+      ],
+      "createdAt": 1764017132851,
+      "updatedAt": 1764017449886
+    },
+    {
+      "id": "4ff26dcc-d759-4c02-ba15-941cd88dd656",
+      "name": "Viaje a USA",
+      "description": "Vamos a ver el mundial!!",
       "baseCurrency": "USD",
       "members": [
         "0fb6750c-8eca-434b-add4-c664d1d4f5a7",
-        "385637d2-338e-4ab4-88f7-e851879102bb",
-        "05ab4868-e44d-42a9-8013-3bcfdd579352"
+        "683271ad-1086-4c32-8977-9b7d43bf9e6f",
+        "69484327-f8b3-429f-8c64-11cebf84ed96",
+        "385637d2-338e-4ab4-88f7-e851879102bb"
       ],
       "expenses": [],
-      "createdAt": 1764015964600,
-      "updatedAt": 1764015971648
+      "createdAt": 1764017156978,
+      "updatedAt": 1764017204874
     }
   ]
 }
