@@ -256,7 +256,7 @@ export function ContactsManagement() {
 
       {/* Dialog para agregar contactos */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[600px]">
+        <DialogContent className="max-w-2xl max-h-[750px]">
           <DialogHeader>
             <DialogTitle>Agregar Contacto</DialogTitle>
             <DialogDescription>

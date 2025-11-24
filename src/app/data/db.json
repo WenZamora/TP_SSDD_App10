@@ -85,6 +85,17 @@
         "aa05ceb0-27fb-4e43-927f-5c41755185d4"
       ],
       "createdAt": 1763920863076
+    },
+    {
+      "id": "0fb6750c-8eca-434b-add4-c664d1d4f5a7",
+      "name": "Erik",
+      "email": "erik@erik.com",
+      "avatar": "",
+      "contacts": [
+        "05ab4868-e44d-42a9-8013-3bcfdd579352",
+        "385637d2-338e-4ab4-88f7-e851879102bb"
+      ],
+      "createdAt": 1764015568671
     }
   ],
   "groups": [
@@ -369,6 +380,20 @@
       ],
       "createdAt": 1763926881692,
       "updatedAt": 1763926950111
+    },
+    {
+      "id": "2148c7af-9a65-4e38-90c3-650eb474a207",
+      "name": "Viaje a Japón",
+      "description": "",
+      "baseCurrency": "USD",
+      "members": [
+        "0fb6750c-8eca-434b-add4-c664d1d4f5a7",
+        "385637d2-338e-4ab4-88f7-e851879102bb",
+        "05ab4868-e44d-42a9-8013-3bcfdd579352"
+      ],
+      "expenses": [],
+      "createdAt": 1764015964600,
+      "updatedAt": 1764015971648
     }
   ]
 }
