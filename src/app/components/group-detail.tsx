@@ -13,6 +13,7 @@ import { useContacts } from '@/app/hooks/useContacts'
 import { useGroupBalance } from '@/app/hooks/useBalance'
 import { useExpensesByPerson, useExpensesByCategory } from '@/app/hooks/useStatistics'
 import { AddExpenseModal } from './add-expense-modal'
+import  ChartByCategory  from "@/app/components/chartByCategory";
 
 interface GroupDetailProps {
   groupId: string | null
@@ -23,8 +24,11 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
   const { data: group, isLoading: groupLoading } = useGroup(groupId || '')
   const { data: allContacts = [] } = useContacts()
   const { data: balanceData } = useGroupBalance(groupId || '')
+  
   const { data: expensesByPerson = [] } = useExpensesByPerson(groupId || '')
   const { data: expensesByCategory = [] } = useExpensesByCategory(groupId || '')
+  console.log("GROUP ID:", groupId);
+  console.log("HOOK EXPENSES BY CATEGORY:", expensesByCategory);
   const [isAddExpenseOpen, setIsAddExpenseOpen] = useState(false)
   
   // Get contact name by ID
@@ -222,46 +226,16 @@ export function GroupDetail({ groupId, baseCurrency }: GroupDetailProps) {
               </div>
               <CardDescription>Distribución de gastos según categoría</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               {expensesByCategory.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No hay datos disponibles</p>
+                <p className="text-center text-muted-foreground py-4">No hay datos disponibles</p>
               ) : (
-                expensesByCategory.map((cat, index) => (
-                  <div key={cat.category} className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <div 
-                          className={cn(
-                            "h-3 w-3 rounded-full",
-                            index % 4 === 0 && "bg-chart-1",
-                            index % 4 === 1 && "bg-chart-2",
-                            index % 4 === 2 && "bg-chart-3",
-                            index % 4 === 3 && "bg-chart-4"
-                          )}
-                        />
-                        <span className="font-medium text-foreground">{cat.category}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">
-                          {cat.totalAmount.toFixed(2)} {group.baseCurrency}
-                        </span>
-                        <Badge variant="outline">{cat.percentage.toFixed(0)}%</Badge>
-                      </div>
-                    </div>
-                    <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                      <div 
-                        className={cn(
-                          "h-full transition-all",
-                          index % 4 === 0 && "bg-chart-1",
-                          index % 4 === 1 && "bg-chart-2",
-                          index % 4 === 2 && "bg-chart-3",
-                          index % 4 === 3 && "bg-chart-4"
-                        )}
-                        style={{ width: `${cat.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-                ))
+                <ChartByCategory
+                  data={expensesByCategory.map((item) => ({
+                    category: item.category,
+                    totalAmount: item.totalAmount,
+                  }))}
+                />
               )}
             </CardContent>
           </Card>

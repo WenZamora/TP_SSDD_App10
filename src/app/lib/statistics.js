@@ -60,7 +60,19 @@ export async function getExpensesByPerson(group) {
  * @returns {Array} Empty array (no categories in simplified model)
  */
 export function getExpensesByCategory(group) {
-  return [];
+  if (!group.expenses || group.expenses.length === 0) return [];
+
+  const map = new Map();
+
+  group.expenses.forEach(expense => {
+    const category = expense.category || "Sin categoría";
+    const amount = expense.amount || 0;
+
+    map.set(category, (map.get(category) || 0) + amount);
+  });
+
+  const result = Array.from(map, ([category, totalAmount]) => ({ category, totalAmount }));
+  return result;
 }
 //TODO
 
