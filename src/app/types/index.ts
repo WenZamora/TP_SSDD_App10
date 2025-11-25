@@ -66,6 +66,7 @@ export interface Contact {
 export interface Database {
   groups: Group[]
   users: User[]
+  exchangeRates: USDExchangeRate
 }
 
 // ============================================================================
@@ -171,6 +172,17 @@ export interface ExchangeRate {
   rate: number
   from: string
   to: string
+  timestamp: number
+  fallback?: boolean
+  error?: boolean
+}
+
+/**
+ * USD Exchange Rates - ALL Currency exchange rates, from USD to EVERYTHING else
+ */
+export interface USDExchangeRate {
+  rate: number[]
+  to: string[]
   timestamp: number
   fallback?: boolean
   error?: boolean

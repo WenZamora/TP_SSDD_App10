@@ -6,17 +6,8 @@
 
 // Cache for exchange rates (1 hour TTL)
 const cache = new Map();
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
-
-// Fallback rates in case API fails
-const FALLBACK_RATES = {
-  USD_ARS: 950,
-  USD_EUR: 0.92,
-  USD_BRL: 4.95,
-  ARS_USD: 0.00105,
-  EUR_USD: 1.09,
-  BRL_USD: 0.20,
-};
+//const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+const CACHE_TTL = 8 * 60 * 60 * 1000; // 8 hours in milliseconds... 1 hour is WAY too low when you have only 100 free requests a month 3 times a day, 30 days is 90...
 
 /**
  * Gets the exchange rate between two currencies
@@ -26,6 +17,7 @@ const FALLBACK_RATES = {
  * @returns {Promise<Object>} { rate: number, from: string, to: string, timestamp: number }
  */
 export async function getExchangeRate(from, to) {
+
   // If currencies are the same, rate is 1
   if (from === to) {
     return {
@@ -35,82 +27,40 @@ export async function getExchangeRate(from, to) {
       timestamp: Date.now(),
     };
   }
-
-  // Check cache first
-  const cacheKey = `${from}_${to}`;
-  const cached = cache.get(cacheKey);
   
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached;
+  const exchangeRates = await getUpdatedUSDRates();
+
+  //console.log("===========================exchangeRates====================")
+  //console.log(exchangeRates);
+
+  if (to != "USD" && exchangeRates.to.indexOf(to) == -1)
+  {
+    throw new Error("No exchange rate for currency TO:"+to);
+  }
+  if (from != "USD" && exchangeRates.to.indexOf(from) == -1)
+  {
+    throw new Error("No exchange rate for currency FROM:"+from);
+  }
+  var USDto = 1;
+  var USDfrom = 1;
+
+  if (to != "USD")
+  {
+    USDto = exchangeRates.rate[exchangeRates.to.indexOf(to)];
+  }
+  if (from != "USD")
+  {
+    USDfrom = exchangeRates.rate[exchangeRates.to.indexOf(from)];
   }
 
-  try {
-    // Call exchangerate.host API
-    const url = `https://api.exchangerate.host/latest?base=${from}&symbols=${to}`;
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`API returned ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (!data.success || !data.rates || !data.rates[to]) {
-      throw new Error("Invalid API response");
-    }
-    
-    const rate = data.rates[to];
-    const result = {
-      rate,
+  return {
+      rate: USDto/USDfrom,
       from,
       to,
-      timestamp: Date.now(),
+      timestamp: exchangeRates.timestamp,
     };
-    
-    // Store in cache
-    cache.set(cacheKey, result);
-    
-    return result;
-    
-  } catch (error) {
-    console.error(`Error fetching exchange rate for ${from} to ${to}:`, error.message);
-    
-    // Use fallback rate if available
-    const fallbackKey = `${from}_${to}`;
-    if (FALLBACK_RATES[fallbackKey]) {
-      console.warn(`Using fallback rate for ${from} to ${to}`);
-      return {
-        rate: FALLBACK_RATES[fallbackKey],
-        from,
-        to,
-        timestamp: Date.now(),
-        fallback: true,
-      };
-    }
-    
-    // If no fallback, try inverse rate
-    const inverseKey = `${to}_${from}`;
-    if (FALLBACK_RATES[inverseKey]) {
-      console.warn(`Using inverse fallback rate for ${from} to ${to}`);
-      return {
-        rate: 1 / FALLBACK_RATES[inverseKey],
-        from,
-        to,
-        timestamp: Date.now(),
-        fallback: true,
-      };
-    }
-    
-    // Last resort: return 1 (no conversion)
-    console.warn(`No exchange rate available for ${from} to ${to}, using 1:1`);
-    return {
-      rate: 1,
-      from,
-      to,
-      timestamp: Date.now(),
-      error: true,
-    };
-  }
+
+  
 }
 
 /**
@@ -155,5 +105,65 @@ export async function convertExpenseToCurrency(expense, targetCurrency) {
  */
 export function clearCache() {
   cache.clear();
+}
+
+// PLEASE DON'T HATE ME, I'M SORRY!!!
+import { readDB, writeDB } from "./db.js";
+
+/**
+ * Gets an "updated" exchange rates for all USD-XXX
+ * This calls the API, at most once every 8 hours. This limit is to not overuse the API.
+ */
+export async function getUpdatedUSDRates() {
+  const db = await readDB();
+
+  //console.log("=============================DB.EXCHANGE======================")
+  //console.log(db.exchangeRates);
+
+  if (db.exchangeRates && Date.now() - db.exchangeRates.timestamp < CACHE_TTL) {
+    return db.exchangeRates;
+  }
+
+  console.log("Exchange rates updated!!! Timestamp="+Date.now());
+
+  try {
+    // Another horrible thing... But this HAS to work, right?
+    const currencies = ["ARS","EUR","BRL","GBP","JPY","MXN","CLP","COP","UYU"];
+    // Call exchangerate.host API
+    // THIS ACCESSKEY HERE IS AWFUL, BUT WELL...
+    const accessKey = "117eba3a86ceb1befbae2090c850fb87"
+    //BUUUUT this one gets ALL exchanges... but only from USD
+    const url = `http://api.exchangerate.host/live?access_key=${accessKey}&currencies=${currencies.toString()}&format=1`;
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`API returned ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // We can validate a bit... not really expecting this to break
+    if (!data.success || !data.quotes) {
+      throw new Error("Invalid API response");
+    }
+
+    var rates = [];
+    currencies.forEach(function(currency, index){
+      rates[index] = data.quotes["USD"+currencies[index]]
+    });
+
+    db.exchangeRates = {
+      rate: rates,
+      to: currencies,
+      timestamp: Date.now()
+    }
+
+    await writeDB(db);
+
+    return db.exchangeRates;
+  } catch (error) {
+    // PLEASE.... just don't break (pleading with a lot of duct tape and faith)
+    console.error(`Error fetching exchange rates:`, error.message);
+  }
 }
 

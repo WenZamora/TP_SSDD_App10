@@ -50,7 +50,7 @@ export async function readDB() {
     return JSON.parse(txt); //convierte a objeto
 
   } catch (err) {// si está corrupto, se reinicia o se puede cambiar para que lance un error 
-    const initial = { groups: [], users: [] };
+    const initial = { groups: [], users: [], exchangeRates };
     await fs.writeFile(DB_PATH, JSON.stringify(initial, null, 2), "utf8");
     return initial;
   }

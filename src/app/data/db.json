@@ -445,9 +445,59 @@
         "69484327-f8b3-429f-8c64-11cebf84ed96",
         "385637d2-338e-4ab4-88f7-e851879102bb"
       ],
-      "expenses": [],
+      "expenses": [
+        {
+          "id": "a6622a89-0ed3-470d-9cc6-2c836b8a3356",
+          "description": "TEST",
+          "amount": 1500,
+          "currency": "ARS",
+          "convertedAmount": 1.053079489495904,
+          "payer": "0fb6750c-8eca-434b-add4-c664d1d4f5a7",
+          "category": "Other",
+          "date": 1764039864133,
+          "createdAt": 1764039876077,
+          "updatedAt": 1764039876077
+        },
+        {
+          "id": "31816577-0d52-4c0d-8d59-6eac13b02d0a",
+          "description": "Gasto en yenes",
+          "amount": 15000,
+          "currency": "JPY",
+          "convertedAmount": 95.72095305243336,
+          "payer": "683271ad-1086-4c32-8977-9b7d43bf9e6f",
+          "category": "Other",
+          "date": 1764039945684,
+          "createdAt": 1764039945720,
+          "updatedAt": 1764039945720
+        }
+      ],
       "createdAt": 1764017156978,
-      "updatedAt": 1764017204874
+      "updatedAt": 1764039945720
     }
-  ]
+  ],
+  "exchangeRates": {
+    "rate": [
+      1424.393899,
+      0.86776,
+      5.389198,
+      0.762925,
+      156.705502,
+      18.497096,
+      941.140195,
+      3793,
+      39.839324
+    ],
+    "to": [
+      "ARS",
+      "EUR",
+      "BRL",
+      "GBP",
+      "JPY",
+      "MXN",
+      "CLP",
+      "COP",
+      "UYU"
+    ],
+    "timestamp": 1764038809580
+  }
 }
