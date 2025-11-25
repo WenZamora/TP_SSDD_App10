@@ -62,6 +62,7 @@ export async function getExpensesByPerson(group) {
 export function getExpensesByCategory(group) {
   return [];
 }
+//TODO
 
 /**
  * Gets expenses grouped by month
