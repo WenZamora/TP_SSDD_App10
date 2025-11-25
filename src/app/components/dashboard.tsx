@@ -8,6 +8,8 @@ import { useGroups } from '@/app/hooks/useGroups'
 import { useAggregatedBalances } from '@/app/hooks/useBalance'
 import { useUser } from '@/app/providers/user-provider'
 
+import GastosChart from "@/app/components/gastos-chart"
+
 const groupImages: Record<string, string> = {
   'viaje': '/mountain-landscape-bariloche.jpg',
   'cumpleaños': '/birthday-dinner-celebration.jpg',
@@ -46,6 +48,26 @@ export function Dashboard() {
   const { data: groups = [], isLoading } = useGroups()
   
   const { balancesByCurrency, isLoading: isLoadingBalances } = useAggregatedBalances(groups, currentUser?.id)
+
+  // --- Cálculo de totales para los gráficos ---
+  const totalesPorPersona: Record<string, number> = {}
+  const totalesPorCategoria: Record<string, number> = {}
+  
+  groups.forEach(group => {
+    group.expenses.forEach(exp => {
+    const monto = exp.convertedAmount ?? exp.amount ?? 0
+
+    // Totales por persona
+    const p = exp.payer || "Desconocido"
+    if (!totalesPorPersona[p]) totalesPorPersona[p] = 0
+      totalesPorPersona[p] += monto
+
+    // Totales por categoría
+    const c = exp.category || "Sin categoría"
+    if (!totalesPorCategoria[c]) totalesPorCategoria[c] = 0
+      totalesPorCategoria[c] += monto
+      })
+  })
 
   return (
     <div className="p-8 space-y-8">
@@ -122,7 +144,12 @@ export function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
+      
+      <GastosChart
+        totalesPorPersona={totalesPorPersona}
+        totalesPorCategoria={totalesPorCategoria}
+      />
+      
       <div>
         <h3 className="text-xl font-semibold mb-4 text-foreground">Grupos Activos</h3>
         {isLoading ? (
