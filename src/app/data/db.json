@@ -469,10 +469,22 @@
           "date": 1764039945684,
           "createdAt": 1764039945720,
           "updatedAt": 1764039945720
+        },
+        {
+          "id": "ded1e527-d52e-429d-95e0-a712269271aa",
+          "description": "asd",
+          "amount": 90,
+          "currency": "USD",
+          "convertedAmount": 90,
+          "payer": "0fb6750c-8eca-434b-add4-c664d1d4f5a7",
+          "category": "Other",
+          "date": 1764047240006,
+          "createdAt": 1764047240034,
+          "updatedAt": 1764047240034
         }
       ],
       "createdAt": 1764017156978,
-      "updatedAt": 1764039945720
+      "updatedAt": 1764047240034
     }
   ],
   "exchangeRates": {

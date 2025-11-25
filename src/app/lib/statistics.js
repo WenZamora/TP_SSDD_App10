@@ -24,7 +24,7 @@ export async function getExpensesByPerson(group) {
 
   group.expenses.forEach(expense => {
     const payerId = expense.payer;
-    const amount = expense.amount;
+    const amount = expense.convertedAmount !== undefined ? expense.convertedAmount : expense.amount;
 
     if (!expensesByPerson.has(payerId)) {
       expensesByPerson.set(payerId, {
@@ -81,7 +81,7 @@ export function getExpensesByMonth(group) {
     const year = date.getFullYear();
     const month = date.getMonth(); // 0-11
     const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-    const amount = expense.amount;
+    const amount = expense.convertedAmount !== undefined ? expense.convertedAmount : expense.amount;
 
     if (!expensesByMonth.has(monthKey)) {
       expensesByMonth.set(monthKey, {
@@ -128,7 +128,7 @@ export function getTotalGroupExpenses(group) {
 
   let total = 0;
   group.expenses.forEach(expense => {
-    const amount = expense.amount;
+    const amount = expense.convertedAmount !== undefined ? expense.convertedAmount : expense.amount;
     total += amount;
   });
 
