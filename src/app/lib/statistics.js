@@ -63,9 +63,20 @@ export function getExpensesByCategory(group) {
   if (!group.expenses || group.expenses.length === 0) return [];
 
   const map = new Map();
-
+  //Horrible patch u-u
+  const mapCategory = new Map();
+  mapCategory.set('Food', 'Comida');
+  mapCategory.set('Transport', 'Transporte');
+  mapCategory.set('Accommodation', 'Alojamiento');
+  mapCategory.set('Entertainment', 'Entretenimiento');
+  mapCategory.set('Shopping', 'Compras');
+  mapCategory.set('Health', 'Salud');
+  mapCategory.set('Education', 'Educación');
+  mapCategory.set('Utilities', 'Servicios');
+  mapCategory.set('Other', 'Otro');
+  mapCategory.set('General', 'General');
   group.expenses.forEach(expense => {
-    const category = expense.category || "Sin categoría";
+    const category = mapCategory.get(expense.category) || "Sin categoría";
     const amount = (expense.convertedAmount !== undefined ? expense.convertedAmount : expense.amount) || 0;
 
     map.set(category, (map.get(category) || 0) + amount);
