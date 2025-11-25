@@ -66,7 +66,7 @@ export function getExpensesByCategory(group) {
 
   group.expenses.forEach(expense => {
     const category = expense.category || "Sin categoría";
-    const amount = expense.amount || 0;
+    const amount = (expense.convertedAmount !== undefined ? expense.convertedAmount : expense.amount) || 0;
 
     map.set(category, (map.get(category) || 0) + amount);
   });
@@ -74,7 +74,6 @@ export function getExpensesByCategory(group) {
   const result = Array.from(map, ([category, totalAmount]) => ({ category, totalAmount }));
   return result;
 }
-//TODO
 
 /**
  * Gets expenses grouped by month

@@ -481,10 +481,22 @@
           "date": 1764047240006,
           "createdAt": 1764047240034,
           "updatedAt": 1764047240034
+        },
+        {
+          "id": "8255b9a5-acc4-47b9-bfa9-68e24e5d1679",
+          "description": "Entrada Zoo",
+          "amount": 12,
+          "currency": "USD",
+          "convertedAmount": 12,
+          "payer": "69484327-f8b3-429f-8c64-11cebf84ed96",
+          "category": "Entertainment",
+          "date": 1764081738199,
+          "createdAt": 1764081739414,
+          "updatedAt": 1764081739414
         }
       ],
       "createdAt": 1764017156978,
-      "updatedAt": 1764047240034
+      "updatedAt": 1764081739414
     }
   ],
   "exchangeRates": {
